@@ -1,0 +1,32 @@
+import numpy as np
+from typing import Union
+
+def V_matrix(x,N):
+    return(np.array([[element**i for i in range(N)] for element in x]).reshape(-1,1))
+
+def sin_matrix(x):
+    return(np.array([np.sin(i) for i in x]).reshape(-1,1))
+
+def householder(A):
+    m,n = A.shape
+
+    Q = np.identity(m)
+    R = np.copy(A)
+
+    for k in range(0,n):
+        x = A[k:, k]
+        temp = np.sign(x[0]) * np.linalg.norm(x)
+        e1 = np.zeros(x.shape[0])
+        e1[0] = 1
+        v_k = temp * e1 + x
+        v_k = v_k / np.linalg.norm(v_k)
+        
+        A[k:,k:] = A[k:,k:] - 2*v_k * (v_k.T @ A[k:,k:])
+
+    R = A  
+
+    return R
+    
+x_list = [-4+j*2/5 for j in range(20)]
+
+householder(V_matrix(x_list,8))
