@@ -1,0 +1,6 @@
+# .lintr configuration
+# Increase maximum line length to 120 characters to avoid 80-char warnings.
+# To disable the line-length check entirely set line_length_linter = NULL
+linters: with_defaults(
+  line_length_linter = NULL #line_length_linter(120)
+)

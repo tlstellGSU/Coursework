@@ -1,3 +1,3 @@
-temp <- c(1, 2, 3, 4, 5)
+x <- round(10^seq(1, 4, length.out = 10))
 
-print(temp)
+print(x)

@@ -390,7 +390,7 @@ auto_epsilon <- function(points, min_points = 5, quantile_value = 0.90) {
 
 dbscan_filter <- function(points, min_points = 5, epsilon = NULL,
                           quantile_epsilon = 0.95, B = 2000,
-                          sample_fraction = 0.8, CL = 0.95) {
+                          sample_fraction = 0.95, CL = 0.95) {
 
   points <- as.matrix(points)
   n <- nrow(points)
@@ -428,7 +428,7 @@ dbscan_filter <- function(points, min_points = 5, epsilon = NULL,
   return(points[filtered_idx, , drop = FALSE])
 }
 
-alpha_shape_2D <- function(points, alpha, CL = 1.0, sampling_fraction = 0.8) {
+alpha_shape_2D <- function(points, alpha, CL = 1.0, sampling_fraction = 0.95) {
   points <- as.matrix(points)
   if (ncol(points) != 2) stop("points must be n x 2 for 2D alpha shape")
 
@@ -552,6 +552,27 @@ visualize_alpha_shape_2D <- function(alpha_shape_result, points, title = "Alpha 
         lines(r_inner * cos(theta), r_inner * sin(theta), col = "red", lwd = 2)
         r_inner <- r_outer + spacing
     }
+  } else if(shape == "squares" && !is.null(r_outer) && !is.null(r_inner)) {
+    # outline between the two squares to represent the square ring
+    square_outer <- rbind(
+      c(-r_outer, -r_outer),
+      c(r_outer, -r_outer),
+      c(r_outer, r_outer),
+      c(-r_outer, r_outer),
+      c(-r_outer, -r_outer)
+    )
+    lines(square_outer, col = "red", lwd = 2)
+
+    square_inner <- rbind(
+      c(-r_inner, -r_inner),
+      c(r_inner, -r_inner),
+      c(r_inner, r_inner),
+      c(-r_inner, r_inner),
+      c(-r_inner, -r_inner)
+    )
+    lines(square_inner, col = "red", lwd = 2)
+
+
   } else {
     invisible(NULL)
   }
@@ -730,8 +751,8 @@ alternating_squares_pointcloud_2D <- function(total_points = 1000, num_squares =
 
     for (i in 1:(num_squares)) {
        
-        inner_k <- spacing/2 + (i - 1) * (square_width + spacing)
-        outer_k <- spacing/2 + (i - 1) * (square_width + spacing) + square_width
+        inner_k <- spacing + 2 * (i - 1) * (square_width + spacing)
+        outer_k <- spacing + 2 * (i - 1) * (square_width + spacing) + 2 * square_width
 
         num_square_points <- floor(points_per_square_ratio[i] * total_points)
 
@@ -782,31 +803,47 @@ square_area_2D <- function(num_squares = 5, square_width = 0.5, spacing = 1, cen
     return(total_area)
 }
 
-alternating_sqaures_polygon <- function(num_squares = 5, square_width = 0.5, spacing = 1, center_x = 0, center_y = 0) {
-    polygon_coords <- matrix(0, nrow = 0, ncol = 2)
+alternating_squares_polygon <- function(num_squares = 5,
+                                        square_width = 0.5,
+                                        spacing = 1,
+                                        center_x = 0,
+                                        center_y = 0) {
+    
+    polygon_list <- list()
 
-    for (i in 0:(num_squares - 1)) {
-        x_inner <- center_x + spacing/2 + (i-1)*(square_width + spacing)
-        x_outer <- center_x + spacing/2 + (i-1)*(square_width + spacing) + square_width
-        y_inner <- center_y + spacing/2 + (i-1)*(square_width + spacing)
-        y_outer <- center_y + spacing/2 + (i-1)*(square_width + spacing) + square_width
-
-        square_coords <- rbind(
-            c(-x_inner, y_inner),
-            c(-x_inner, -y_inner),
-            c(x_inner, -y_inner),
-            c(x_inner, y_inner),
-            c(-x_outer, y_outer),
-            c(-x_outer, -y_outer),
-            c(x_outer, -y_outer),
-            c(x_outer, y_outer),
+    for (i in 1:num_squares) {
+        
+        inner_k <- spacing/2 + (i - 1) * (square_width + spacing)
+        outer_k <- inner_k + square_width
+        
+        # Outer boundary (CCW)
+        outer <- rbind(
+            c(center_x - outer_k, center_y + outer_k),
+            c(center_x + outer_k, center_y + outer_k),
+            c(center_x + outer_k, center_y - outer_k),
+            c(center_x - outer_k, center_y - outer_k),
+            c(center_x - outer_k, center_y + outer_k)   # close
         )
+        
+        # Inner boundary (CW for a "hole")
+        inner <- rbind(
+            c(center_x - inner_k, center_y + inner_k),
+            c(center_x - inner_k, center_y - inner_k),
+            c(center_x + inner_k, center_y - inner_k),
+            c(center_x + inner_k, center_y + inner_k),
+            c(center_x - inner_k, center_y + inner_k)   # close
+        )
+        inner <- inner[nrow(inner):1, ]                 # reverse to CW
 
-        polygon_coords <- rbind(polygon_coords, square_coords)
+        # Combine into a single polygon structure
+        poly <- rbind(outer, inner)
+
+        polygon_list[[i]] <- poly
     }
-
-    return(polygon_coords)
+    
+    return(polygon_list)
 }
+
 
 pitchfork_bifurcation_datacloud <- function(num_points = 1000, noise = 0.05, direction ="up") {
 
@@ -895,7 +932,7 @@ error_in_2D <- function(true_area, estimated_area) {
     return(abs(true_area - estimated_area) / true_area * 100)
 }
 
-calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000) {
+calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000, num_rings = 3, spacing = 3.0, width = 1.5, shape = "concentric") {
     # Function to calculate KL divergence between true shape and estimated alpha shape
     # true_shape: the true shape representation (e.g., polygon for 2D)
     # estimated_shape: the estimated alpha shape representation
@@ -904,6 +941,8 @@ calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_r
     if (dim == 2) {
           if (length(true_shape$polygons) == 0 || length(estimated_shape$polygons) == 0)
             return(NA)
+
+        
 
         # bounding box
         all_points <- rbind(do.call(rbind, true_shape$polygons), do.call(rbind, estimated_shape$polygons))
@@ -918,6 +957,8 @@ calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_r
        # grid <- expand.grid(x = x_seq, y = y_seq)
         grid <- data.frame(x = runif(grid_res * grid_res, min = x_range[1], max = x_range[2]),y = runif(grid_res * grid_res, min = y_range[1], max = y_range[2]))
         
+        
+
         # helper to check if points are in any polygon
         points_in_polygons <- function(points, polygons) {
             inside <- rep(FALSE, nrow(points))
@@ -925,6 +966,39 @@ calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_r
             inside <- inside | sp::point.in.polygon(points$x, points$y, poly[,1], poly[,2]) > 0
             }
             return(inside)
+        }
+
+        if (shape == "squares"){
+            inside_est <- points_in_polygons(grid, estimated_shape$polygons)
+            inside_true <- c()
+            # for grid points, check if in any of the square rings using the math
+            for (i in 1:nrow(grid)){
+                point <- grid[i, ]
+                is_inside <- FALSE
+               
+                for (j in 1:num_rings) {
+                    r_inner <- spacing + 2 * (j - 1) * (width + spacing)
+                    r_outer <- r_inner + 2 * width
+                    max_value <- max(abs(point$x), abs(point$y))
+                    if (max_value >= r_inner && max_value <= r_outer) {
+                        is_inside <- TRUE
+                        break
+                    }
+                }
+                inside_true <- c(inside_true, is_inside)
+            }
+
+            P <- inside_true / sum(inside_true)
+            Q <- inside_est / sum(inside_est)
+
+            # add small epsilon to avoid log(0)
+
+            eps <- 1e-16 
+            P <- P + eps
+            Q <- Q + eps
+
+            KL <- sum(P * log(P / Q))
+            return(KL)
         }
 
         # true vs estimated occupancy
@@ -947,7 +1021,7 @@ calculate_KL_divergence <- function(true_shape, estimated_shape, dim = 2, grid_r
 }
 }
 
-IOU_score <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000) {
+IOU_score <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000, shape = "concentric", num_rings = 3, spacing = 3.0, width = 1.5) {
     # Function to calculate Intersection over Union (IoU) score between true shape and estimated alpha shape
     # true_shape: the true shape representation (e.g., polygon for 2D)
     # estimated_shape: the estimated alpha shape representation
@@ -977,6 +1051,33 @@ IOU_score <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000) {
             return(inside)
         }
 
+        if (shape == "squares"){
+            inside_est <- points_in_polygons(grid, estimated_shape$polygons)
+            inside_true <- c()
+            # for grid points, check if in any of the square rings using the math
+            for (i in 1:nrow(grid)){
+                point <- grid[i, ]
+                is_inside <- FALSE
+               
+                for (j in 1:num_rings) {
+                    r_inner <- spacing + 2 * (j - 1) * (width + spacing)
+                    r_outer <- r_inner + 2 * width
+                    max_value <- max(abs(point$x), abs(point$y))
+                    if (max_value >= r_inner && max_value <= r_outer) {
+                        is_inside <- TRUE
+                        break
+                    }
+                }
+                inside_true <- c(inside_true, is_inside)
+            }
+
+            intersection <- sum(inside_true & inside_est)
+            union <- sum(inside_true | inside_est)
+
+            IoU <- intersection / union
+            return(IoU)
+        }
+
         # true vs estimated occupancy
         inside_true <- points_in_polygons(grid, true_shape$polygons)
         inside_est <- points_in_polygons(grid, estimated_shape$polygons)
@@ -995,7 +1096,6 @@ IOU_score <- function(true_shape, estimated_shape, dim = 2, grid_res = 10000) {
 main_test <- function(dim = 2, alpha = 0.2, CL = 1.0, num_points = 1000, noise_in_data = 0.1, title = "Alpha Shape Visualization", r_inner = 1, r_outer = 3, shape = "ring", spacing = 1, ring_width = 0.5, num_rings = 3, sampling_fraction = 0.8) {
 
     # generate test data
-
 
     if (dim == 2){
         print("Generating 2D test data...")
@@ -1041,24 +1141,9 @@ main_test <- function(dim = 2, alpha = 0.2, CL = 1.0, num_points = 1000, noise_i
             true_area <- 8
         }
         else if (shape=="squares"){
-            points <- alternating_squares_pointcloud_2D(total_points = num_points, num_squares = 1, square_width = ring_width, spacing = spacing, noise = noise_in_data)
+            points <- alternating_squares_pointcloud_2D(total_points = num_points, num_squares = num_rings, square_width = ring_width, spacing = spacing, noise = noise_in_data)
             true_area <- square_area_2D(num_squares = num_rings, square_width = ring_width, spacing = spacing)
-            true_shape <- list(polygons = list())
-            for (i in 0:(num_rings - 1)) {
-                x_inner <- - (i * (ring_width + spacing)) - ring_width / 2
-                x_outer <- (i * (ring_width + spacing)) + ring_width / 2
-                y_inner <- - (i * (ring_width + spacing)) - ring_width / 2
-                y_outer <- (i * (ring_width + spacing)) + ring_width / 2
-
-                square_poly <- rbind(
-                    c(x_inner, y_inner),
-                    c(x_outer, y_inner),
-                    c(x_outer, y_outer),
-                    c(x_inner, y_outer),
-                    c(x_inner, y_inner)
-                )
-                true_shape$polygons[[length(true_shape$polygons) + 1]] <- square_poly
-            }
+            true_shape <- list(polygons = alternating_squares_polygon(num_squares = num_rings, square_width = ring_width, spacing = spacing))
         }
         
         else {
@@ -1083,12 +1168,20 @@ main_test <- function(dim = 2, alpha = 0.2, CL = 1.0, num_points = 1000, noise_i
         KL_divergence <- calculate_KL_divergence(
             true_shape = true_shape,
             estimated_shape = alpha_shape_result,
-            dim = 2
+            dim = 2,
+            shape = shape,
+            num_rings = num_rings,
+            spacing = spacing,
+            width = ring_width
         )
         IOU_score_value <- IOU_score(
             true_shape = true_shape,
             estimated_shape = alpha_shape_result,
-            dim = 2
+            dim = 2,
+            shape = shape,
+            num_rings = num_rings,
+            spacing = spacing,
+            width = ring_width
         )
         print(paste("KL Divergence:", KL_divergence, "IOU Score:", IOU_score_value))
 
@@ -1114,7 +1207,8 @@ alpha_variations <- function(
                             spacing = 3.0, 
                             ring_width = 1.5, 
                             num_rings = 3,
-                            specific_parameters = NULL
+                            specific_parameters = NULL,
+                            save_path = NULL
                             ) {
         
     total_trials <- length(alpha_value_list) * length(CL_list) * length(noise_in_data)
@@ -1128,8 +1222,8 @@ alpha_variations <- function(
         noise = numeric(),
         KL_divergence = numeric(),
         IOU_score = numeric(),
-        alpha_shape = list(),
-        shape = character()
+        shape = character(),
+        time_taken = numeric()
     )
 
     if (!is.null(specific_parameters)) {
@@ -1142,17 +1236,20 @@ alpha_variations <- function(
             CL <- as.numeric(params[2])
             noise <- as.numeric(params[3])
             shape_specific <- as.character(params[4])
+            time_start <- Sys.time()
             print(paste("Trial", trial_count + 1, "of", total_trials))
-            print(paste("Running for Alpha:", alpha, "CL:", CL, "Noise:", noise))
-            title <- paste("Alpha Shape Visualization - Alpha:", alpha, "CL:", CL, "Noise:", noise)
+            print(paste("Running for Alpha:", alpha, "CL:", CL, "Noise:", noise, "Shape:", shape_specific))
+            title <- paste("Alpha Shape Visualization - Alpha:", alpha, "CL:", CL, "Noise:", noise, "Shape:", shape_specific)
             res <- main_test(dim = dim, alpha = alpha, CL = CL, num_points = num_points, noise_in_data = noise, title = title, r_outer = r_outer, r_inner = r_inner, shape = shape_specific, spacing = spacing, ring_width = ring_width, num_rings = num_rings)
             KL_divergence <- res$KL_divergence
             IOU_score_value <- res$IOU_score
-            alpha_shape_result <- res$alpha_shape
             KL_divergence_results <- rbind(KL_divergence_results, data.frame(alpha = alpha, CL = CL, noise = noise, KL_divergence = KL_divergence))
             IOU_score_results <- rbind(IOU_score_results, data.frame(alpha = alpha, CL = CL, noise = noise, IOU_score = IOU_score_value))
             trial_count <- trial_count + 1
-            score_results <- rbind(score_results, data.frame(alpha = alpha, CL = CL, noise = noise, KL_divergence = KL_divergence, IOU_score = IOU_score_value, alpha_shape = I(list(alpha_shape_result)), shape = shape_specific))
+            time_end <- Sys.time()
+            time_taken <- as.numeric(time_end - time_start, units = "secs")
+            score_results <- rbind(score_results, data.frame(alpha = alpha, CL = CL, noise = noise, KL_divergence = KL_divergence, IOU_score = IOU_score_value, shape = shape_specific, time_taken = time_taken))
+
         }
 
     }
@@ -1175,6 +1272,9 @@ alpha_variations <- function(
       }
     }
 
+    if (!is.null(save_path)) {
+        save_path <- save_path
+    } else{
     if (shape == "concentric") {
         temp <- paste0(str(spacing), "_", str(ring_width), "_", str(num_rings))
         save_path <- paste0("alpha_shape_KL_IOU_concentric_rings_", temp, "_results.csv")
@@ -1189,9 +1289,11 @@ alpha_variations <- function(
     } else {
         save_path <- paste0("alpha_shape_KL_IOU_", shape, "_results.csv")
     }
+    }
 
     # save results to csv
     write.csv(score_results, file = save_path, row.names = FALSE)
+    print(paste("Results saved to", save_path))
     print("Alpha variations completed.")
 
 }
@@ -1290,7 +1392,6 @@ sample_fraction_variations <- function(
         data_results <- rbind(data_results, data.frame(sampling_fraction = fraction, KL_divergence = result$KL_divergence, IOU_score = result$IOU_score))}
     
     write.csv(data_results, file = "alpha_shape_sampling_fraction_results.csv", row.names = FALSE)
-    print("Sample fraction variations completed.")
 }
 
 corner_variations <- function(s = 3.0, w= 1.5, num_rings = 3, alpha_list = c(1.0), CL_list = c(0.95), num_points = 10000, noise_in_data_list = c(0.01)) {
@@ -1311,7 +1412,6 @@ corner_variations <- function(s = 3.0, w= 1.5, num_rings = 3, alpha_list = c(1.0
     }
     
     write.csv(result_dataframe, file = "corner_variations_results.csv", row.names = FALSE)
-    print("Corner variations test completed.")
 }
 
 #set.seed(137)
@@ -1322,59 +1422,84 @@ alpha_sample_list <- c(0.5, 1.0)
 noise_sample_list <- c(0.01, 0.001)
 
 specific_parameter_list <- list(
-  # alpha, CL, noise
-    c(1.0, 1.0, 0.01, "squares"),
-    c(1.0, 0.95, 0.01, "squares"),
-    c(0.5, 0.95, 0.01, "squares"),
-    c(1.0, 1.0, 0, "squares"),
+  # alpha, CL, noise, shape
+
+    # squares
+    #c(1.0, 1.0, 0, "squares"),
+    #c(1.0, 1.0, 0.01, "squares"),
     #c(1.0, 0.95, 0, "squares"),
-    #c(0.5, 0.95, 0, "squares"),
-    #c(0.5, 1.0, 0, "squares"),
-    #c(0.1, 1.0, 0, "squares"),
-    c(2.0, 1.0, 0, "squares"),
-    c(1.0, 1.0, 0.001, "squares"),
-    c(1.0, 0.95, 0.001, "squares"),
-    c(0.5, 1.0, 0.001, "squares"),
-    c(0.5, 1.0, 0.01, "squares"),
-    c(0.5, 0.95, 0.001, "squares")
-)
+    #c(1.0, 0.95, 0.01, "squares"),
 
-parameter_list_2 <- list(
-    c(1.0, 1.0, 0.01, "concentric"),
-    c(1.0, 0.95, 0.01, "concentric"),
-    c(0.5, 0.95, 0.01, "concentric"),
+    # concentric rings
+    # change alpha
     c(1.0, 1.0, 0, "concentric"),
-    c(1.0, 0.95, 0, "concentric"),
-    c(0.5, 0.95, 0, "concentric"),
     c(0.5, 1.0, 0, "concentric"),
-    c(0.1, 1.0, 0, "concentric"),
     c(2.0, 1.0, 0, "concentric"),
+    c(1.5, 1.0, 0, "concentric"),
+    # add noise
+    c(1.0, 1.0, 0.01, "concentric"),
+    c(1.0, 1.0, 0.05, "concentric"),
     c(1.0, 1.0, 0.001, "concentric"),
-    c(1.0, 0.95, 0.001, "concentric"),
-    c(0.5, 1.0, 0.001, "concentric"),
-    c(0.5, 1.0, 0.01, "concentric"),
-    c(0.5, 0.95, 0.001, "concentric")
+    # change CL
+    c(1.0, 0.95, 0.01, "concentric"),
+    c(1.0, 0.90, 0.01, "concentric"),
+    # c(1.0, 1.0, 0.01, "concentric"), -> reuse above
+    # different alpha with noise and CL
+    c(0.5, 0.95, 0.01, "concentric"),
+    c(2.0, 0.95, 0.01, "concentric"),
+    c(1.5, 0.95, 0.01, "concentric")
+   
 )
 
-used_points <- 3000
+used_points <- 10000
+spacing <- 3.0
+ring_width <- 1.5
+num_rings <- 3
 
-params_list <- cbind(specific_parameter_list, parameter_list_2)
 
 print("Starting alpha variations test...")
 alpha_variations(alpha_value_list = alpha_sample_list, 
                 dim = 2, 
                 CL_list = c(1.0, 0.95), 
                 num_points = used_points, 
-                num_rings = 2,
-                ring_width = 1.5,
-                spacing = 3.0,
+                num_rings = num_rings,
+                ring_width = ring_width,
+                spacing = spacing,
                 noise_in_data = noise_sample_list, 
                 shape = "concentric",
-                specific_parameters = params_list
+                specific_parameters = specific_parameter_list,
+                save_path = "alpha_variations_concentric_results.csv"
                 )
 
+corner_analysis_list <- list(
+    # alpha CL noise shape
+    c(1.0, 1.0, 0.0, "squares"),
+    c(1.0, 1.0, 0.01, "squares"),
+    c(1.0, 0.95, 0.0, "squares"),
+    c(1.0, 0.95, 0.01, "squares"),
+    c(1.0, 1.0, 0.0, "concentric"),
+    c(1.0, 1.0, 0.01, "concentric"),
+    c(1.0, 0.95, 0.0, "concentric"),
+    c(1.0, 0.95, 0.01, "concentric")
+)
 
-print("Second shape test completed.")
+print("Starting corner variations test...")
+
+alpha_variations(alpha_value_list = alpha_sample_list, 
+                dim = 2, 
+                CL_list = c(1.0, 0.95), 
+                num_points = 1000, 
+                r_outer = 5,
+                r_inner = 3,
+                spacing = spacing,
+                ring_width = ring_width,
+                shape = "squares",
+                noise_in_data = noise_sample_list,
+                specific_parameters = corner_analysis_list,
+                save_path = "corner_analysis_results.csv"
+                )
+
+print("corner analysis test completed.")
 
 print("All Alpha variations test completed.")
 print("Starting complexity time measurements...")
@@ -1385,13 +1510,9 @@ plot_datapoints_timing(csv_file = "alpha_shape_datapoints_timing.csv", scale = 4
 print("Complexity time measurements completed.")
 
 print("Starting sample fraction variations test...")
-sample_fraction_variations(fraction_list = c(0.5, 0.6, 0.7, 0.8, 0.9, 0.99), dim = 2, alpha = 1.0, CL = 0.95, num_points = used_points, noise_in_data = 0.01, shape = "concentric", r_outer = 5, r_inner = 3)
+#sample_fraction_variations(fraction_list = c(0.5, 0.6, 0.7, 0.8, 0.85,  0.9, 0.95, 0.99), dim = 2, alpha = 1.0, CL = 0.95, num_points = 2000, noise_in_data = 0.01, shape = "squares", r_outer = 5, r_inner = 3, num_rings = num_rings, spacing = spacing, ring_width = ring_width)
 
 print("Sample fraction variations test completed.")
-
-print("Starting corner variations test...")
-corner_variations(s = 3.0, w= 1.5, num_rings = 3, alpha_list = c(1.0, 0.5), CL_list = c(1.0, 0.95), num_points = used_points, noise_in_data_list = c(0.001))
-print("Corner variations test completed.")
 
 print("All tests completed.")
 

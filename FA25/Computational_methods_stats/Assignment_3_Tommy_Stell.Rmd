@@ -1,0 +1,364 @@
+---
+title: "Assignment 3"
+author: |
+  | Tommy Stell
+  | Georgia State University
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    df_print: kable
+    highlight: tango
+  rmarkdown::html_document:
+    theme: readable
+  html_document:
+    toc: true
+    df_print: paged
+subtitle: |
+  | STAT 8670
+urlcolor: blue
+fontsize: 11pt
+geometry: margin=1in
+---
+
+# Question 1
+
+Let $\theta = \int\limits_2^4 e^{-x} dx$
+
+## 1a
+
+Derive $\theta$ in a closed form.
+
+$\square$
+
+$$\theta = \int\limits_2^4 e^{-x} dx = -e^{-x} \Big|_2^4 = (-e^{-4})-(-e^{-2}) = e^{-2} - e^{-4}$$
+
+$\blacksquare$
+
+## 1b
+
+Consider the simple MC estimator with $X_i \sim \text{Unif}(2,4)$
+
+$\hat\theta_m= (4-2) {1\over m} \sum\limits_{i=1}^m \text{e}^{-X_i}$
+
+Derive $\mathbb{E}[\hat \theta_m], \text{Var}(\hat\theta_m)$ and a large-sample $100(1-\alpha)\%$ CI for $\theta$ using the CLT
+
+$\square$
+
+$$\mathbb{E}[\hat\theta_m] = 2\mathbb{E}[e^{-X}] = 2 \int\limits_2^4 e^{-x} f_{\text{U}(2,4)}dx = \int\limits_2^4 e^{-x}dx = \theta$$
+$$\text{Var}(\hat\theta_m) = 4{\text{Var}(e^{-X}) \over m} = {4 \over m}\left(\mathbb{E}\left[e^{-2X}\right] - \mathbb{E}\left[e^{-X}\right]^2 \right) = {4 \over m} \left(e^{-4} - e^{-8} - \left(e^{-2} - e^{-4}\right)^2 \over 4 \right) $$
+
+$$\text{Var}(\hat\theta_m) = {e^{-4} - e^{-8} - \left(e^{-2} - e^{-4}\right)^2 \over m} = {2(e^{-6}-e^{-8}) \over m}$$
+
+By the large sample CLT, we have $\hat\theta_m \approx N(\theta, \text{Var}(\hat\theta_m))$. So we can approximate this Ci by the following.
+
+$$\hat\theta_m \pm z_{1-\alpha/2} \sqrt{{2 \left(e^{-6} - e^{-8} \right)\over m}}$$
+
+$\blacksquare$
+
+## 1c
+
+Simulate $m \in\{10^2, 10^3, 10^4, 10^5 \}$ and produce a log-log plot of absolute error vs $m$ with setting seeds. Fit a least-squares line to $\text{log}_{10}(\text{abs. error})$ vs $\text{log}_{10}(m)$ and report the slope.
+
+$\square$
+
+```{r}
+theta_true <- exp(-2) - exp(-4)
+
+m_samples <- c(1e2, 1e3, 1e4, 1e5)
+
+theta_sample <- function(m){
+    
+    running_sum <- 0
+
+    for (i in 1:m){
+        set.seed(i)
+        x <- runif(1, 2, 4)
+        running_sum <- running_sum + exp(-x)
+    }
+
+    return((4-2)*running_sum / m)
+}
+
+m_sampled_values <- numeric(length(m_samples))
+
+for (i in seq_along(m_samples)){
+    m <- m_samples[i]
+    m_sampled_values[i] <- theta_sample(m)
+}
+
+m_sampled_errors <- abs(m_sampled_values - theta_true)
+results <- data.frame(m = m_samples, theta_sampled = m_sampled_values, error = m_sampled_errors)
+print(results)
+
+plot(log10(results$m), log10(results$error), type='b', xlab='log10(m)', ylab='log10(error)', main='Log-Log plot of Error vs m')
+abline(lm(log10(results$error) ~ log10(results$m)), col='red')
+
+slope <- coef(lm(log10(results$error) ~ log10(results$m)))[2]
+cat("Slope of the line in log-log plot:", slope, "\n")
+
+```
+
+$\blacksquare$
+
+# Question 2
+
+Let $X \sim \text{Exp}(1)$ and $Y=\text{e}^{-X}$ so that $\theta = \mathbb{E}[Y]=\mathbb{E}[e^{-X}]= \int_0^\infty e^{-x}e^{-x}dx=1/2$. Use $h(X) = X$ as a control variate (with $\mathbb{E}[h]=1, \text{Var}(h)=1$). 
+
+## 2a 
+
+Compute $\beta^*$, the optimal control coefficient.
+
+$\square$
+
+$$\beta^* = {\text{Cov}(Y,h) \over \text{Var}(h)} = \text{Cov}(e^{-X},X) = \mathbb{E}[Xe^{-X}] - \mathbb{E}[X]\mathbb{E}[e^{-X}]$$
+
+$$\mathbb{E}[Xe^{-X}] = \int\limits_0^\infty xe^{-x}e^{-x} dx = \int\limits_0^\infty xe^{-2x}dx = {1\over 4}$$
+
+Thus, $\beta^*$ is given by the following.
+
+$$\beta^* = \mathbb{E}[Xe^{-X}] - \mathbb{E}[X]\mathbb{E}[e^{-X}] = {1\over 4} - {1\over 2} = - {1\over 4}$$
+
+$\blacksquare$
+
+## 2b 
+
+Compute $\text{Var}(Y)$, the minimized variance with control variate, and the relative efficiency.
+
+$\square$
+
+For the $\text{Var}(Y)$, we can do the following.
+
+$$\text{Var}(Y) = \mathbb{E}[Y^2] - \mathbb{E}[Y]^2 = \mathbb{E}[e^{-2X}] - \mathbb{E}[e^{-x}]^2= \int\limits_0^\infty e^{-3x}dx - \left(1\over 2\right)^2 = {1\over 3} - {1\over 4} = {1\over 12}$$
+
+The minimized variance with control variate is given by the following.
+
+$$\text{Var}_{min} = \text{Var}(Y) - {\text{Cov} (Y,h)^2 \over \text{Var}(h)}$$
+
+Thus, using the previously calculated values, we get the following.
+
+$$\text{Var}_{min} = {1\over 12} - \left( - {1\over 4} \right)^2 = {1\over 12} - {1\over 16} = {1 \over 48}$$
+
+The relative efficiency is given by the ration of the variance to the minimized variance $\text{Var}(Y) / \text{Var}_{min}$. Thus,
+
+$$\text{Relative Efficiency} = {\text{Var}(Y) \over \text{Var}_{min}} = {1/12 \over 1/48} = 4$$
+
+$\blacksquare$
+
+# Question 3
+
+Let $\theta = \int_0^1 e^x dx = e-1$ and $g(u)=e^u$.
+
+## 3a
+
+Derive $\mathbb{E}[g(U)]$ and $\text{Var}(g(U))$ for $U \sim \text{Unif}(0,1)$.
+
+$\square$
+
+$$\mathbb{E}[g(U)] = \int\limits_0^1 e^u du = e^1 - e^0 = e-1$$
+
+$$\mathbb{E}[g(U)^2] = \int\limits_0^1 e^{2u} du = {e^2 - 1 \over 2}$$
+
+$$\text{Var}(g(U)) = \mathbb{E}[g(U)^2] - (\mathbb{E}[g(U)])^2 = {e^2 - 1 \over 2} - (e-1)^2 \approx 0.242$$
+
+$\blacksquare$
+
+## 3b
+
+Show that $g(U)$ and $g(1-U)$ are negatively correlated and conclude that the antithetic estimator has a smaller variance than the plain MC.
+
+$\square$
+
+$$\mathbb{E}[g(U)g(1-U)] = \mathbb{E}[e^Ue^{1-U}]= \mathbb{E}[e^1]=e$$
+
+$$\text{Cov}(g(U),g(1-U)) = \mathbb{E}[g(U)g(1-U)] - \mathbb{E}[g(U)] \mathbb{E}[g(1-U)]$$
+
+Now, $\mathbb{E}[g(1-U)] = \int_0^1 e^{1-u}du = e-1$, so we can write the covariance as follows.
+
+$$\text{Cov}(g(U),g(1-U)) = e - (e-1)^2 \approx - 0.234$$
+
+To compute the variance of the antithetic estimator, we can do the following.
+
+$$\text{Var}\left(g(U)+g(1-U) \over 2 \right) = {\text{Var}(g(U)) + \text{Var}(g(1-U)) + 2 \text{Cov}(g(U),g(1-U)) \over 4} $$
+
+$$\text{Var}\left(g(U)+g(1-U) \over 2 \right) = {{e^2-1} - 2(e-1)^2 + 2e-2(e-1)^2 \over 4} = {e^2 - 1 + 2e - 4(e-1)^2 \over 4} \approx 0.0039 $$
+
+In comparison, we can compute the variance of the average of two variables with the same distribution.
+
+$$\text{Var}\left(g(U)+g(U) \over 2 \right) = {\text{Var}(g(U)) + \text{Var}(g(U)) + 2 \text{Cov}(g(U),g(U)) \over 4} =  { e^2-1 - 2(e-1)^2\over 4} \approx 0.121$$
+
+So we can conclude that the variance is lower when using the antithetic variables.
+
+$\blacksquare$
+
+## 3c
+
+With $m=1000$ simulate both estimators $R=100$ times and report the sample variances. Comment on the findings.
+
+$\square$
+
+```{r}
+function_3 <- function(x){
+    return(exp(-x))
+}
+
+true_3 <- exp(0) - exp(-1)
+
+m_3 <- 1e3
+R_3 <- 1e2
+
+# simple MC
+
+simple_MC_3 <- function(m){
+    running_sum <- 0
+
+    for (i in 1:m){
+        set.seed(i)
+        x <- runif(1, 0, 1)
+        running_sum <- running_sum + function_3(x)
+    }
+
+    return(running_sum / m)
+}
+
+simple_MC_values <- simple_MC_3(m_3)
+
+# antithetic MC
+
+
+antithetic_MC_3 <- function(m){
+    running_sum <- 0
+
+    for (i in 1:(m/2)){
+        set.seed(i)
+        u <- runif(1, 0, 1)
+        running_sum <- running_sum + (function_3(1-u) + function_3(u))/2
+    }
+
+    return(running_sum / m)
+}
+
+antithetic_MC_values <- antithetic_MC_3(m_3)
+
+
+simple_MC_variances <- numeric(R_3)
+antithetic_MC_variances <- numeric(R_3)
+
+for (r in 1:R_3) {
+    simple_MC_variances[r] <- var(replicate(100, simple_MC_3(m_3)))
+    antithetic_MC_variances[r] <- var(replicate(100, antithetic_MC_3(m_3)))
+}
+cat("Simple MC estimate:", simple_MC_values, "with variance:", mean(simple_MC_variances), "\n")
+cat("Antithetic MC estimate:", antithetic_MC_values, "with variance:", mean(antithetic_MC_variances), "\n")
+
+```
+
+As evident from the sample variances, we can see that the antithetic MC has a much lower variance by orders of magnitude. This points towards the usage of an anthithetic MC estimate to be much stronger.
+
+$\blacksquare$
+
+# Question 4
+
+Let $U \sim \text{Unif}(0,1)$ and define $Y_1 = g(U)$ and $Y_2=g(1-U)$ for a measurable $g:[0,1] \rightarrow \mathbb{R}$. Consider the antithetic estimator
+
+$$\hat\theta_\text{AV} = {1 \over 2m} \sum\limits_{i=1}^m \left(g(U_i) + g(1-U_i) \right), \quad U_i \stackrel{\text{i.i.d.}}{\sim} \text{Unif}(0,1$$
+
+## 4a
+
+Show that $\hat \theta_\text{AV}$ is unbiased for $\theta = \mathbb{E}[g(U)]$
+
+$\square$
+
+An estimator is unbiased iff $\mathbb{E}[\hat\theta - \theta]=0$. We can show this by the following.
+
+$$\mathbb{E}[\hat\theta_m] = {1\over 2m}\sum\limits_{i=1}^m  \mathbb{E}[g(U_i)] + \mathbb{E}[g(1-U_i)] = {\mathbb{E}[g(U)] + \mathbb{E}[g(1-U)] \over 2 }$$
+
+But, we know that since $U \sim \text{Unif}(0,1)$ then $\mathbb{E}[g(U)] = \mathbb{E}[g(1-U)] = \theta$.So we can simplify to the following.
+
+$$\mathbb{E}[\hat\theta_m] ={\mathbb{E}[g(U)] + \mathbb{E}[g(1-U)] \over 2 } = {\theta + \theta \over 2} = \theta $$
+
+Thus the bias given by $\mathbb{E}[\hat\theta_m] - \mathbb{E}[\theta]$ is exactly 0.
+
+$\blacksquare$
+
+## 4b
+
+Let $\rho = \text{Corr}(g(U), g(1-U))$. Show that
+
+$$\text{Var}(\hat\theta_\text{AV}) = {1 \over 2m} \text{Var}(g(U))(1+\rho)$$
+
+When does antithetic sampling reduce variance versus plain MC using 2m i.i.d. draws?
+
+$\square$
+
+We have the following.
+
+$$\text{Var}(\hat\theta_\text{AV}) = \text{Var}\left({1 \over 2m} \sum\limits_{i=1}^m \left(g(U_i) + g(1-U_i) \right) \right) = {\text{Var}(g(U) +g(1-U)) \over m}$$
+
+Examining the inner variance, we get the following.
+
+$$\text{Var}(g(U) +g(1-U)) = {  \text{Var}(g(U)) + \text{Var}(g(1-U)) + 2 \text{Cov}(g(U),g(1-U))  \over 4}$$
+
+But we know that $\text{Var}(g(U)) = \text{Var}(g(1-U))$. This allows us to rewrite as follows.
+
+$$\text{Var}(g(U) +g(1-U)) = {  2\text{Var}(g(U))  + 2 \rho \text{Var}(g(U))  \over 4} = {\text{Var}(g(U))\over 2}(1+\rho)$$
+
+Thus, we can say that $\text{Var}(\hat\theta_\text{AV})$ is given by the following.
+
+$$\text{Var}(\hat\theta_\text{AV}) ={\text{Var}(g(U))\over 2m}(1+\rho)$$
+From the above, this will only reduce the variance if $\rho < 0$ which will lead to a decrease in the variance.
+
+$\blacksquare$
+
+# Question 5
+
+## 5a
+
+Suppose $g$ is monotone on $[0,1]$. Determine the sign of $\rho=\text{Corr}(g(U),g(1-U))$ for (i) monotone increasing $g$, (ii) monotone decreasing $g$. Give an intuitive explanation.
+
+$\square$
+
+We know that the correlation is directly related to the covariance so to investigate the bahvior of $\rho$, it is sufficient to study the behavior of the covariance.
+
+In other words, we need to show that the covariance is always negative regardless if $g$ is monotonically increasing or decreasing. Without loss of generality, assume $g$ is monotonically increasing. This can be said by the following.
+
+$$ x<y \implies f(x)\leq f(y)\quad \text{or} \quad f(y) - f(x) \geq 0 $$
+
+This in turns leads to the following statement.
+
+$$x<y \iff 1-x > 1-y \implies f(1-y) - f(1-x) \leq 0$$
+This means the product of the two preceding statements l(eads to the following.
+
+$$\left(f(y) - f(x) \right)\left( f(1-y) - f(1-x) \right) \leq 0\quad \forall x,y \in [0,1]$$
+Take the double integral of this expression across the unit square.
+
+$$I=\int\limits_0^1 \int\limits_0^1 (f(y) - f(x))(f(1-y)-f(1-x))dx dy$$
+
+$$I = \int\limits_0^1 \int\limits_0^1 f(y)f(1-y) - f(y)f(1-x)-f(x)f(1-y) + f(x)f(1-x) dx dy$$
+$$I = \int\limits_0^1 \int\limits_0^1 f(y)f(1-y)dx dy - \int\limits_0^1 \int\limits_0^1f(y)f(1-x) dx dy-\int\limits_0^1 \int\limits_0^1f(x)f(1-y)dx dy + \int\limits_0^1 \int\limits_0^1f(x)f(1-x) dx dy$$
+This can be simplified significantly by recognizing that the functions are symmetric and thus we can split this into the following sum, $I = I_1 + I_2 + I_3 + I_ 4$, and then analyze each part individually. 
+
+$$I_1 = \int\limits_0^1 \int\limits_0^1 f(y)f(1-y)dx dy = \int\limits_0^1 f(y)f(1-y)dy$$
+$$I_4 = \int\limits_0^1 \int\limits_0^1 f(x)f(1-x)dx dy = \int\limits_0^1 f(x)f(1-x)dx$$
+So we can say that by the proper change of variables, $I_1 = I_4$. We can write this form of the integral as follows.
+
+$$I_a = \int\limits_0^1 f(x)f(1-x)dx$$
+
+
+Now taking $I_2$ and $I_3$, we see the following since the interiors are independent, we can seperate the integrals.
+
+$$I_2 = \int\limits_0^1 \int\limits_0^1f(y)f(1-x) dx dy = \left( \int\limits_0^1 f(y) dy \right)\left( \int\limits_0^1 f(1-x) dx \right)$$
+$$I_3 = \int\limits_0^1 \int\limits_0^1f(x)f(1-y) dx dy = \left( \int\limits_0^1 f(x) dx \right)\left( \int\limits_0^1 f(1-y) dy \right)$$
+
+Which, by the proper change of variables again, we get the that $I_2 = I_3$.We can write this form of the integral as follows.
+
+$$I_b = \left( \int\limits_0^1 f(x) dx \right)\left( \int\limits_0^1 f(1-x) dx \right)$$
+
+Thus, we can write $I=2I_a - 2I_b$, or less succinctly,
+
+$${I \over 2} = \int\limits_0^1 f(x)f(1-x)dx - \left( \int\limits_0^1 f(x) dx \right)\left( \int\limits_0^1 f(1-x) dx \right)$$
+Which the term $I/2$ is the covariance given by $\text{Cov}(g(u),g(1-u))$. Thus we can say that regardless if the function $g$ is monotonically increasing or monotonically decreasing, we get that the covariance is always negative.
+
+
+$\blacksquare$

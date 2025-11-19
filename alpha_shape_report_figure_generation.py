@@ -688,34 +688,33 @@ def hollow_square_plot(w=1.5, s=3, num=1):
     
     plt.close("all")
     plt.figure()
-    
-    for k in range(num, 0, -1):
-        outer_k = k*(s+w)
-        inner_k = k*s + (k-1)*w
-        outer_square = mpatches.Rectangle(
-            (-outer_k/2, -outer_k/2),
-            width=outer_k,
-            height=outer_k,
-            edgecolor="black",
-            facecolor="green",
-            lw=0,
-            alpha = 0.5
-        )
-        inner_square = mpatches.Rectangle(
-            (-inner_k/2, -inner_k/2),
-            width=inner_k,
-            height=inner_k,
-            edgecolor="black",
-            facecolor="white",
-            lw=0,
-            alpha = 1.0
-        )
+    # color in everything red and then overwrite with green if in the squares
 
-        plt.gca().add_patch(outer_square)
-        plt.gca().add_patch(inner_square)
+    og_distance = 0
 
-    plt.xlim(-num*(s+w)/2 -1, (num)*(s+w)/2 +1)
-    plt.ylim(-num*(s+w)/2 -1, (num)*(s+w)/2 +1)
+    x = np.linspace(-num*(s+w) -1, (num)*(s+w) +1, 400)
+    y = np.linspace(-num*(s+w) -1, (num)*(s+w) +1, 400)
+    X, Y = np.meshgrid(x, y)
+
+    img = np.zeros((X.shape[0], X.shape[1], 4))  # RGBA
+
+
+    for k in range(0,2*num+1):
+        if k % 2 == 1:
+            color = np.array([0, 1, 0, 0.5])   # green RGBA
+            distance = og_distance + w
+        else:
+            color = np.array([1, 0, 0, 0.5])   # red RGBA
+            distance = og_distance + s
+
+        M = (np.maximum(np.abs(X), np.abs(Y)) > og_distance) & (np.maximum(np.abs(X), np.abs(Y)) <= distance)
+
+        img[M] = color
+
+        og_distance = distance
+
+    plt.imshow(img, extent=(x.min(), x.max(), y.min(), y.max()), origin="lower")
+
     plt.gca().set_aspect("equal", adjustable="box")
 
     plt.title("Hollow Square Dynamics Example")

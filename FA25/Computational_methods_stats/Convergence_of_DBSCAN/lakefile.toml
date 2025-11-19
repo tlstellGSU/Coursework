@@ -1,0 +1,10 @@
+name = "Convergence_of_DBSCAN"
+version = "0.1.0"
+defaultTargets = ["convergence_of_dbscan"]
+
+[[lean_lib]]
+name = "ConvergenceOfDBSCAN"
+
+[[lean_exe]]
+name = "convergence_of_dbscan"
+root = "Main"

@@ -1,0 +1,251 @@
+---
+title: "Assignment 2"
+subtitle: |
+  | STAT 8670
+author: |
+  | Tommy Stell
+  | Georgia State University
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+    df_print: kable
+    highlight: tango
+  rmarkdown::html_document:
+    theme: readable
+urlcolor: blue
+fontsize: 11pt
+geometry: margin=1in
+---
+
+# Question 1
+
+Given $f(x) = \text{e}^{2x} -2$ on $x \in \mathcal{X} = [0,2]$
+
+## 1a
+
+Using Root-finding algorithm with $a_0 =0$ and $b_0 = 2$
+
+Iteration 1:
+
+First check: $f(a_0)f(b_0) = (\text{e}^{0} - 2)(\text{e}^4 -2) < 0$
+
+$$ c_1 = {a_0+b_0 \over 2} = {0+2\over2} = 1$$
+
+$$ f(c_1) = \text{e}^2 -2 >0 \rightarrow b_1 = c_1$$
+
+Thus 
+$$\theta_1 = (a_1=0,b_1=1,c_1=1,f(a_1)=-1,f(b_1)\approx 5.389)$$
+
+Iteration 2:
+
+First check: $f(a_1)f(b_1) = (\text{e}^0 - 2)(\text{e}^2-2) < 0$
+
+$$ c_2 = {a_1+b_1 \over 2} = {0+1 \over 2} = {1\over 2}$$
+$$ f(c_2) = \text{e}^1 - 2 > 0 \rightarrow b_2 = c_2$$
+Thus 
+$$\theta_2 = (a_2=0,b_2={1\over2},c_2={1\over2},f(a_2)=-1,f(b_2)\approx 0.718)$$
+
+## 1b
+
+Using NR-method with $x_0 = 0$
+
+Given $f(x)=\text{e}^{2x}-2$, $f'(x) = 2\text{e}^{2x}$
+
+Iteration 1:
+
+$$x_1 = x_0 - {f(x_0) \over f'(x_0)} = 0 - {\text{e}^0 -2 \over 2 \text{e}^0} = 0 - {-1 \over 2} = {1\over 2}$$
+
+Thus 
+
+$$\eta_1 = (x_1 = {1\over 2}, f(x_1) \approx 0.7183)$$
+Iteration 2:
+
+$$x_2 = x_1 - {f(x_1) \over f'(x_1)} = {1\over 2} - {f\left({1\over2}\right) \over f'\left({1\over2}\right)} \approx 0.3679$$
+
+Thus
+
+$$\eta_2 = (x_2 \approx 0.3679, f(x_2) \approx 0.0871)$$
+
+## 1c
+
+Using Secant method with $x_0 =1$ and $x_{-1} = 1.5$
+
+Iteraton 1:
+
+$$ x_1 = x_0 - f(x_0){ x_0 - x_{-1} \over f(x_0) - f(x_{-1})} = 1-f(1){1-1.5 \over f(1)-f(1.5)} \approx 0.7878$$
+
+Thus
+
+$$\tau_1 = (x_1 \approx 0.7878, f(x_1)\approx 2.8336)$$
+
+Iteration 2:
+
+$$ x_2 = x_1 - f(x_1){x_1 - x_0 \over f(x_1) - f(x_0)} \approx 0.7878 - (2.8336){0.7878 -1 \over 2.8336 - 5.3891} \approx 0.5525$$
+
+Thus
+
+$$\tau_2 = (x_2 = 0.5525, f(x_2) = 1.0193 )$$
+
+
+# Question 2
+
+Using tolerance as $\delta = 10^{-5}$ and a maximum iterations of 10.
+
+
+```{r}
+base_function <- function(x){
+    return(exp(2*x) - 2)
+}
+
+base_function_deriv <- function(x){
+    return(2 * exp(2*x))
+}
+
+exact_solution <- log(2) / 2
+```
+
+## 2a 
+
+```{r}
+root_finding_method <- function(f, a, b, tol = 1e-5, max_iter = 10){
+    if (f(a) * f(b) >= 0){
+        stop("f(a) and f(b) must have different signs")
+    }
+    
+    iter <- 0
+    while ((b - a) / 2 > tol && iter < max_iter){
+        c <- (a + b) / 2
+        if (f(c) == 0){
+            return(c)
+        } else if (f(a) * f(c) < 0){
+            b <- c
+        } else {
+            a <- c
+        }
+        iter <- iter + 1
+
+        print(paste("Iteration:", iter)) 
+        print(paste("a:", a, "b:", b, "c:", c))
+        print(paste("f(a):", f(a), "f(b):", f(b)))
+        cat("\n")
+    }
+
+    return((a + b) / 2)}
+```
+
+## 2b 
+
+```{r}
+NR_method <- function(f, f_deriv, x0, tol = 1e-5, max_iter = 10){
+    iter <- 0
+    x <- x0
+
+    while (iter < max_iter && abs(f(x)) > tol){
+        x_new <- x - f(x) / f_deriv(x)
+                
+        x <- x_new
+        iter <- iter + 1
+
+        print(paste("Iteration:", iter, "x:", x, "f(x):", f(x)))
+    }
+    
+    return(x)
+}
+```
+
+## 2c
+
+```{r}
+Secant_method <- function(f, x0, xn1, tol =1e-5, max_iter = 10){
+    iter <- 0
+    x_prev <- x0
+    x_curr <- xn1
+
+    while (iter < max_iter && abs(f(x_curr)) > tol){
+        x_new <- x_curr - f(x_curr) * (x_curr - x_prev) / (f(x_curr) - f(x_prev))
+        
+        x_prev <- x_curr
+        x_curr <- x_new
+        iter <- iter + 1
+
+        print(paste("Iteration:", iter, "x:", x_curr, "f(x):", f(x_curr)))
+    }
+    
+    return(x_curr)
+}
+```
+
+## Running the question 2 code
+
+```{r}
+# Root-finding method
+print("Root-finding method:")
+answer_a <- root_finding_method(base_function, 0, 2)
+cat("\n")
+diff_a <- abs(answer_a - exact_solution)
+print(paste("Absolute Difference:", diff_a))
+cat("\n")
+# Newton-Raphson method
+print("Newton-Raphson method:")
+answer_b <- NR_method(base_function, base_function_deriv, 0)
+cat("\n")
+diff_b <- abs(answer_b - exact_solution)
+print(paste("Absolute Difference:", diff_b))
+cat("\n")
+# Secant method
+print("Secant method:")
+answer_c <- Secant_method(base_function, 1, 1.5)
+cat("\n")
+diff_c <- abs(answer_c - exact_solution)
+print(paste("Absolute Difference:", diff_c))
+
+```
+
+# Question 3
+
+## 3a
+
+Given $\left\{ x_n \right\}_{n \in \mathbb N}$ where $x_n=1+\left(3\over4 \right)^n$
+
+The limit of $x_n$ is given by $\lim\limits_{n \to \infty} x_n = 1$
+
+To check for linear convergence, there must exist a $\mu$ such that $0 \le\mu<1$ in the following:
+
+$$ \lim\limits_{n \to \infty} {\Vert x_{n+1} - x_\infty \Vert \over \Vert x_n - x_\infty \Vert} \le \mu$$ 
+
+In our case, 
+
+$$\lim\limits_{n \to \infty} {\Vert x_{n+1} - x_\infty \Vert \over \Vert x_n - x_\infty \Vert} = \lim\limits_{n \to \infty} {\vert1+\left(3\over4\right)^{n+1}-1\vert \over \vert 1+\left(3\over4\right)^n-1\vert}=\lim\limits_{n\to\infty} {3 \over 4} = {3\over4}$$
+
+So this sequence is linearly convergent. 
+
+To check for superlinear convergence, $\mu =0$ which is not the case and thus this sequence is only linearly convergent
+
+Thus it is not quadratic convergence either since quadratic convergence is a stronger form than superlinear convergence.
+
+## 3b
+
+Given $\left\{ y_n \right\}_{n \in \mathbb N}$ where $y_n=1+\left(3\over4n \right)^n$
+
+The limit of $y_n$ is given by $\lim\limits_{n \to \infty} y_n = 1$
+
+To check for linear convergence, there must exist a $\mu$ such that $0 \le \mu <1$ in the following:
+
+
+$$ \lim\limits_{n \to \infty} {\Vert y_{n+1} - y_\infty \Vert \over \Vert y_n - y_\infty \Vert} \le \mu$$ 
+
+In our case:
+
+$$\lim\limits_{n \to \infty} {\Vert y_{n+1} - y_\infty \Vert \over \Vert y_n - y_\infty \Vert} = \lim\limits_{n \to \infty} {\vert1+\left(3\over4(n+1)\right)^{n+1}-1\vert \over \vert 1+\left(3\over4n\right)^n-1\vert}=\lim\limits_{n\to\infty} {3 \over 4} {n^n \over (n+1)^{(n+1)}}$$
+
+To evaluate this limit, we can do the following:
+
+$$ \lim\limits_{n\to \infty} {3\over 4}{n^n \over (n+1)^{(n+1)}} = \lim\limits_{n\to\infty} \left(n \over n+1\right)^n {1 \over n+1} = \lim\limits_{n\to\infty} \left(1 - {1 \over n+1}\right)^n {1 \over n+1} = \lim\limits_{n\to\infty} {e^{-1} \over n+1} = 0$$
+
+So not only is it linearly convergent, it is in fact superlinearly convergent. 
+
+Using a computer algebra system (Wolf Ram Alpha), it can be shown that it is not quadratically convergent. 
+
+
