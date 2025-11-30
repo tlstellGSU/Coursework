@@ -21,6 +21,8 @@ def thomas_solve(a, b, c, d):
     Solve tridiagonal system with lower diag a[1..n-1], main diag b[0..n-1], upper diag c[0..n-2]
     a, b, c, d are 1D numpy arrays of length n (a[0] unused, c[-1] unused).
     Returns solution x (length n).
+
+    pulled from: https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
     """
     n = len(b)
     cp = np.empty(n-1, dtype=float)
