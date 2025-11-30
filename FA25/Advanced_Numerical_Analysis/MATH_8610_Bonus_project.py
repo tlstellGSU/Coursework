@@ -4,7 +4,7 @@ MATH 8610 - Bonus project
 Create a function that solves the general advection equation in 2D and 3D using ADI method
 The function should take as input the initial condition, boundary conditions, advection velocities, spatial domain, time domain, and size of grid points in each direction.
 
-Advection equation: u_t + a*u_x + b*u_y (+ c*u_z) = 0
+Advection equation: u_t + a*u_x + b*u_y (+ c*u_z) = F(x,y,(z),t)
 
 BCs for the ith side: BC_i(t) = alpha_i*u + beta_i*du
 
@@ -54,7 +54,7 @@ def make_default_bc():
     }
 
 def adi_advection_2d(initial_condition, boundary_conditions, a, b,
-                     x_domain, y_domain, t_domain, dx, dy, dt):
+                     x_domain, y_domain, t_domain, dx, dy, dt, F=None):
     """
     ADI solver for u_t + a u_x + b u_y = 0 with Robin BCs.
     boundary_conditions: dict with keys 'left','right','bottom','top'
@@ -123,7 +123,7 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
 
             # interior RHS
             for i in range(1, nx-1):
-                RHS[i] = u[n, i, j] - (b * dt) / (4.0 * dy) * (u[n, i, j+1] - u[n, i, j-1])
+                RHS[i] = u[n, i, j] - (b * dt) / (4.0 * dy) * (u[n, i, j+1] - u[n, i, j-1]) + ( dt * F(xs[i], ys[j], t_np1) if F is not None else 0.0)
 
             # left BC row (i=0): alpha*u0 + beta*(u1 - u0)/dx = gL
             alpha_L, beta_L, gL = boundary_conditions['left']
@@ -183,7 +183,7 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
             RHS   = np.zeros(ny, dtype=float)
 
             for j in range(1, ny-1):
-                RHS[j] = u_star[i, j] - (a * dt) / (4.0 * dx) * (u_star[i+1, j] - u_star[i-1, j])
+                RHS[j] = u_star[i, j] - (a * dt) / (4.0 * dx) * (u_star[i+1, j] - u_star[i-1, j]) + ( dt * F(xs[i], ys[j], t_np1) if F is not None else 0.0)
 
             # bottom BC j=0
             gBval = gB(t_np1)
@@ -374,7 +374,7 @@ def plot_solution_2d(u, x_domain, y_domain, t_index, dx, dy, nx=None, ny=None):
     plt.ylabel('y')
     plt.show()
 
-def animate_solution_2d(u, x_domain, y_domain, dx, dy, interval=100):
+def animate_solution_2d(u, x_domain, y_domain, dx = None, dy = None, interval=100, save_path_temp = None, a = None, b = None, BCs = None):
     """
     Efficient animation of a 2D solution using pcolormesh.
     
@@ -399,7 +399,27 @@ def animate_solution_2d(u, x_domain, y_domain, dx, dy, interval=100):
         return mesh,
 
     ani = FuncAnimation(fig, update, frames=nt, interval=interval, blit=True)
-    plt.show()
+    if save_path_temp is not None:
+        filename_mp4 = f'{save_path_temp}_a{a}_b{b}.mp4'
+        try:
+            ani.save(filename_mp4, writer='ffmpeg')
+            print(f"Saved animation to {filename_mp4} using ffmpeg.")
+        except Exception as e:
+            print(f"Warning: saving MP4 with ffmpeg failed: {e}")
+            # Try to fall back to saving as GIF using Pillow (if available)
+            try:
+                from matplotlib.animation import PillowWriter
+                filename_gif = filename_mp4.rsplit('.', 1)[0] + '.gif'
+                # convert interval (ms) to fps for PillowWriter
+                fps = (1000.0 / interval) if interval and interval > 0 else 10
+                ani.save(filename_gif, writer=PillowWriter(fps=fps))
+                print(f"Saved animation as GIF to {filename_gif} using PillowWriter.")
+            except Exception as e2:
+                print(f"Could not save animation as GIF either: {e2}")
+                print("To enable MP4 export install ffmpeg and ensure it's on your PATH, or install pillow for GIF support.")
+
+    #plt.show()
+
 
 def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100):
     """
@@ -440,10 +460,10 @@ def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100):
         return surf,
 
     ani = FuncAnimation(fig, update, frames=nt, interval=interval, blit=False)
-    plt.show()
+    #plt.show()
 
 
-def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0, c = 1.0, x_domain = (0, 1), y_domain = (0, 1), z_domain = (0, 1), t_domain = (0, 1), dx = 0.01, dy = 0.01, dz = 0.01, dt = 0.01, dimension = 2):
+def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0, c = 1.0, x_domain = (0, 1), y_domain = (0, 1), z_domain = (0, 1), t_domain = (0, 1), dx = 0.01, dy = 0.01, dz = 0.01, dt = 0.01, dimension = 2, F = None):
     """
     Main function to solve the advection equation using the ADI method. Calls the appropriate 2D or 3D solver based on the dimension parameter.
     If initial_condition or boundary_conditions are not provided, default values will be used.
@@ -487,9 +507,9 @@ def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0,
                 'top': lambda t: 0
             }
 
-        u_soln, xs, ys, times = adi_advection_2d(initial_condition, boundary_conditions, a, b, x_domain, y_domain, t_domain, dx, dy, dt)
+        u_soln, xs, ys, times = adi_advection_2d(initial_condition, boundary_conditions, a, b, x_domain, y_domain, t_domain, dx, dy, dt, F=F)
         #plot_solution_2d(u_soln, x_domain, y_domain, t_index = -1, dx = dx, dy = dy, nx = initial_condition.shape[0], ny = initial_condition.shape[1])
-        animate_solution_2d(u_soln, x_domain, y_domain, dx = dx, dy = dy, interval=100)
+        animate_solution_2d(u_soln, x_domain, y_domain, dx = dx, dy = dy, interval=100, save_path_temp = "adi_2d_solution", a = a, b = b)
         return u_soln
     elif dimension == 3:
         if initial_condition is None:
@@ -522,15 +542,15 @@ if __name__ == "__main__":
     x_domain = (0, 1)
     y_domain = (0, 1)
     z_domain = (0, 1)
-    t_domain = (0, 0.5)
+    t_domain = (0, 1)
 
     dx = 0.01
     dy = 0.01
     dz = 0.01
     dt = 0.005
 
-    a = -1.0
-    b = 0.0
+    a = 1.0
+    b = 1.0
     c = 1.0
 
     n_x = int((x_domain[1] - x_domain[0]) / dx) + 1
@@ -557,14 +577,19 @@ if __name__ == "__main__":
                 z = z_domain[0] + k*dz
                 u_0_3D[i, j, k] = np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
     
+    # forcing term
+    F_2D = lambda x, y, t: 0
+    F_3D = lambda x, y, z, t: np.exp(-t) * np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
+
     # boundary conditions
     boundary_conditions_2D = {
         # u + u_x = f(t)
-        'left':   (0.0, -1.0, lambda t: 0.0),
-        'right':  (1.0, 1.0, lambda t: 1.0),
-        'bottom': (1.0, 1.0, lambda t: 1.0),
-        'top':    (1.0, 1.0, lambda t: 1.0)
+        'left':   (1.0, 1.0, lambda t: 0.0),
+        'right':  (1.0, 1.0, lambda t: 0.0),
+        'bottom': (1.0, 1.0, lambda t: 0.0),
+        'top':    (1.0, 1.0, lambda t: 0.0)
     }
+
 
     boundary_conditions_3D = {
         'left':   (1.0, 0.0, lambda t: 0.0),
@@ -575,5 +600,5 @@ if __name__ == "__main__":
         'back':   (1.0, 0.0, lambda t: 0.0)
     }
 
-    main(initial_condition = u_0_2D, boundary_conditions = boundary_conditions_2D, a = a, b = b, x_domain = x_domain, y_domain = y_domain, t_domain = t_domain, dx = dx, dy = dy, dt = dt, dimension = 2)
-    #main(initial_condition = u_0_3D, boundary_conditions = boundary_conditions_3D, a = a, b = b, c = c, x_domain = x_domain, y_domain = y_domain, z_domain = z_domain, t_domain = t_domain, dx = dx, dy = dy, dz = dz, dt = dt, dimension = 3)
+    main(initial_condition = u_0_2D, boundary_conditions = boundary_conditions_2D, a = a, b = b, x_domain = x_domain, y_domain = y_domain, t_domain = t_domain, dx = dx, dy = dy, dt = dt, dimension = 2, F = F_2D)
+    #main(initial_condition = u_0_3D, boundary_conditions = boundary_conditions_3D, a = a, b = b, c = c, x_domain = x_domain, y_domain = y_domain, z_domain = z_domain, t_domain = t_domain, dx = dx, dy = dy, dz = dz, dt = dt, dimension = 3, F = F_3D)
