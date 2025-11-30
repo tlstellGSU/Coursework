@@ -127,7 +127,8 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
 
             # left BC row (i=0): alpha*u0 + beta*(u1 - u0)/dx = gL
             alpha_L, beta_L, gL = boundary_conditions['left']
-            gLval = gL(t_np1)
+
+            gLval = gL(t_np1, xs[0], ys[j])
             if beta_L == 0:
                 # Dirichlet-like: u0 = g/alpha
                 diag[0] = 1.0
@@ -141,7 +142,7 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
 
             # right BC row (i=nx-1): alpha*uN + beta*(uN - uN-1)/dx = gR
             alpha_R, beta_R, gR = boundary_conditions['right']
-            gRval = gR(t_np1)
+            gRval = gR(t_np1, xs[-1], ys[j])
             if beta_R == 0:
                 diag[-1] = 1.0
                 lower[-1] = 0.0
@@ -161,14 +162,14 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
         alpha_T, beta_T, gT = boundary_conditions['top']
         for i in range(nx):
             # bottom j=0
-            gBval = gB(t_np1)
+            gBval = gB(t_np1, xs[i], ys[0])
             if beta_B == 0:
                 u_star[i, 0] = gBval / alpha_B
             else:
                 # beta*(u1 - u0)/dy + alpha*u0 = g  => u0 = (beta/dy * u1 - g) / (beta/dy + alpha)
                 u_star[i, 0] = ((beta_B / dy) * u_star[i, 1] - gBval) / ((beta_B / dy) + alpha_B)
             # top j=ny-1
-            gTval = gT(t_np1)
+            gTval = gT(t_np1, xs[i], ys[-1])
             if beta_T == 0:
                 u_star[i, -1] = gTval / alpha_T
             else:
@@ -186,7 +187,7 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
                 RHS[j] = u_star[i, j] - adx * (u_star[i+1, j] - u_star[i-1, j]) + ( dt * F(xs[i], ys[j], t_np1) if F is not None else 0.0)
 
             # bottom BC j=0
-            gBval = gB(t_np1)
+            gBval = gB(t_np1, xs[i], ys[0])
             if beta_B == 0:
                 diag[0] = 1.0
                 upper[0] = 0.0
@@ -197,7 +198,7 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
                 RHS[0] = gBval
 
             # top BC j=ny-1
-            gTval = gT(t_np1)
+            gTval = gT(t_np1, xs[i], ys[-1])
             if beta_T == 0:
                 diag[-1] = 1.0
                 lower[-1] = 0.0
@@ -213,14 +214,14 @@ def adi_advection_2d(initial_condition, boundary_conditions, a, b,
         # Fill x-boundaries in unp1 using Robin relations and already-computed neighbors
         for j in range(ny):
             # left i=0
-            gLval = boundary_conditions['left'][2](t_np1)
+            gLval = boundary_conditions['left'][2](t_np1, xs[0], ys[j])
             alpha_L, beta_L = boundary_conditions['left'][0], boundary_conditions['left'][1]
             if beta_L == 0:
                 unp1[0, j] = gLval / alpha_L
             else:
                 unp1[0, j] = ((beta_L / dx) * unp1[1, j] - gLval) / ((beta_L / dx) + alpha_L)
             # right i=nx-1
-            gRval = boundary_conditions['right'][2](t_np1)
+            gRval = boundary_conditions['right'][2](t_np1, xs[-1], ys[j])
             alpha_R, beta_R = boundary_conditions['right'][0], boundary_conditions['right'][1]
             if beta_R == 0:
                 unp1[-1, j] = gRval / alpha_R
@@ -301,8 +302,8 @@ def adi_advection_3d(initial_condition, boundary_conditions,
                 u_half[1:-1, j, k] = solve_banded((1,1), abx, B)
 
         # Boundaries (Dirichlet)
-        u_half[0,:,:] = boundary_conditions['left'][2](t_now)
-        u_half[-1,:,:] = boundary_conditions['right'][2](t_now)
+        u_half[0,:,:] = boundary_conditions['left'][2](t_now, xs, ys, zs)
+        u_half[-1,:,:] = boundary_conditions['right'][2](t_now, xs, ys, zs)
         u_half[:,0,:] = u[n,:,0,:]
         u_half[:,-1,:] = u[n,:,-1,:]
         u_half[:,:,0] = u[n,:,:,0]
@@ -317,8 +318,8 @@ def adi_advection_3d(initial_condition, boundary_conditions,
                 u_half2[i,1:-1,k] = solve_banded((1,1), aby, B)
 
         # Boundaries
-        u_half2[:,0,:] = boundary_conditions['bottom'][2](t_now)
-        u_half2[:,-1,:] = boundary_conditions['top'][2](t_now)
+        u_half2[:,0,:] = boundary_conditions['bottom'][2](t_now, xs, ys, zs)
+        u_half2[:,-1,:] = boundary_conditions['top'][2](t_now, xs, ys, zs)
         u_half2[0,:,:] = u_half[0,:,:]
         u_half2[-1,:,:] = u_half[-1,:,:]
         u_half2[:,:,0] = u_half[:,:,0]
@@ -333,12 +334,12 @@ def adi_advection_3d(initial_condition, boundary_conditions,
                 u_new[i,j,1:-1] = solve_banded((1,1), abz, B)
 
         # Boundaries
-        u_new[0,:,:] = boundary_conditions['left'][2](t_now)
-        u_new[-1,:,:] = boundary_conditions['right'][2](t_now)
-        u_new[:,0,:] = boundary_conditions['bottom'][2](t_now)
-        u_new[:,-1,:] = boundary_conditions['top'][2](t_now)
-        u_new[:,:,0] = boundary_conditions['front'][2](t_now)
-        u_new[:,:,-1] = boundary_conditions['back'][2](t_now)
+        u_new[0,:,:] = boundary_conditions['left'][2](t_now, xs, ys, zs)
+        u_new[-1,:,:] = boundary_conditions['right'][2](t_now, xs, ys, zs)
+        u_new[:,0,:] = boundary_conditions['bottom'][2](t_now, xs, ys, zs)
+        u_new[:,-1,:] = boundary_conditions['top'][2](t_now, xs, ys, zs)
+        u_new[:,:,0] = boundary_conditions['front'][2](t_now, xs, ys, zs)
+        u_new[:,:,-1] = boundary_conditions['back'][2](t_now, xs, ys, zs)
 
         # Save new step
         u[n+1] = u_new
@@ -421,7 +422,7 @@ def animate_solution_2d(u, x_domain, y_domain, dx = None, dy = None, interval=10
     #plt.show()
 
 
-def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100, save_path_temp = None):
+def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100, save_path_temp = None, a= None, b = None, c= None):
     """
     Animate a 2D slice of 3D solution over time.
     
@@ -445,7 +446,7 @@ def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100, sa
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('u')
-    ax.set_zlim(u.min(), u.max())
+    ax.set_zlim(-2, 2)
 
     cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10)
 
@@ -455,14 +456,14 @@ def animate_solution_3d(u, x_domain, y_domain, z_slice_index=0, interval=100, sa
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('u')
-        ax.set_zlim(u.min(), u.max())
+        ax.set_zlim(-2, 2)
         ax.set_title(f'Time index {frame}')
         return surf,
 
     ani = FuncAnimation(fig, update, frames=nt, interval=interval, blit=False)
     #plt.show()
     if save_path_temp is not None:
-        filename_mp4 = f'{save_path_temp}_a{a}_b{b}.mp4'
+        filename_mp4 = f'{save_path_temp}_a{a}_b{b}_c{c}.mp4'
         try:
             ani.save(filename_mp4, writer='ffmpeg')
             print(f"Saved animation to {filename_mp4} using ffmpeg.")
@@ -520,10 +521,10 @@ def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0,
                     initial_condition[i, j] = np.sin(np.pi*x) * np.sin(np.pi*y)
         if boundary_conditions is None:
             boundary_conditions = {
-                'left': lambda t: 0,
-                'right': lambda t: 0,
-                'bottom': lambda t: 0,
-                'top': lambda t: 0
+                'left':   (0.0, 1.0, lambda t: 1.0),
+                'right':  (0.0, 1.0, lambda t: 1.0),
+                'bottom': (0.0, 1.0, lambda t: 1.0),
+                'top':    (0.0, 1.0, lambda t: 1.0)
             }
 
         u_soln, xs, ys, times = adi_advection_2d(initial_condition, boundary_conditions, a, b, x_domain, y_domain, t_domain, dx, dy, dt, F=F)
@@ -545,18 +546,18 @@ def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0,
                         initial_condition[i, j, k] = np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
         if boundary_conditions is None:
             boundary_conditions = {
-                'left': lambda t: 0,
-                'right': lambda t: 0,
-                'bottom': lambda t: 0,
-                'top': lambda t: 0,
-                'front': lambda t: 0,
-                'back': lambda t: 0
+                'left':   (1.0, 0.0, lambda t: 0.0),
+                'right':  (1.0, 0.0, lambda t: 0.0),
+                'bottom': (1.0, 0.0, lambda t: 0.0),
+                'top':    (1.0, 0.0, lambda t: 0.0),
+                'front':  (1.0, 0.0, lambda t: 0.0),
+                'back':   (1.0, 0.0, lambda t: 0.0)
             }
         u_soln, xs, ys, zs, times = adi_advection_3d(initial_condition, boundary_conditions, a, b, c, x_domain, y_domain, z_domain, t_domain, dx, dy, dz, dt)
-        animate_solution_3d(u_soln, x_domain, y_domain, z_slice_index = int(len(zs)/2), interval=100, save_path_temp = save_path_temp)
+        animate_solution_3d(u_soln, x_domain, y_domain, z_slice_index = int(len(zs)/2), interval=100, save_path_temp = save_path_temp, a = a, b = b, c = c)
         return u_soln, xs, ys, zs, times
     
-def tests_to_run():
+def tests_to_run(run_2D = False, run_3D = True, run_value_NHG = True):
     x_domain = (0, 1)
     y_domain = (0, 1)
     z_domain = (0, 1)
@@ -566,6 +567,10 @@ def tests_to_run():
     dy = 0.01
     dz = 0.01
     dt = 0.005
+    dx_3 = 0.05
+    dy_3 = 0.05
+    dz_3 = 0.05
+    dt_3 = 0.005
 
     a = 1.0
     b = 1.0
@@ -575,6 +580,10 @@ def tests_to_run():
     n_y = int((y_domain[1] - y_domain[0]) / dy) + 1
     n_z = int((z_domain[1] - z_domain[0]) / dz) + 1
     n_t = int((t_domain[1] - t_domain[0]) / dt) + 1
+    n_x_3 = int((x_domain[1] - x_domain[0]) / dx_3) + 1
+    n_y_3 = int((y_domain[1] - y_domain[0]) / dy_3) + 1
+    n_z_3 = int((z_domain[1] - z_domain[0]) / dz_3) + 1
+    n_t_3 = int((t_domain[1] - t_domain[0]) / dt_3) + 1
 
     # initial condition
 
@@ -584,203 +593,314 @@ def tests_to_run():
             x = x_domain[0] + i*dx
             y = y_domain[0] + j*dy
             u_0_2D[i, j] = np.sin(np.pi*x/0.1) * np.sin(np.pi*y/0.1)
-    u_0_3D = np.zeros((n_x, n_y, n_z))
-    for i in range(n_x):
-        for j in range(n_y):
-            for k in range(n_z):
-                x = x_domain[0] + i*dx
-                y = y_domain[0] + j*dy
-                z = z_domain[0] + k*dz
+    u_0_3D = np.zeros((n_x_3, n_y_3, n_z_3))
+    for i in range(n_x_3):
+        for j in range(n_y_3):
+            for k in range(n_z_3):
+                x = x_domain[0] + i*dx_3
+                y = y_domain[0] + j*dy_3
+                z = z_domain[0] + k*dz_3
                 u_0_3D[i, j, k] = np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
     
-    list_of_tests = [
+    tests_2D = [
         # forcing term, BCs, initial condition, dimension, save_path_temp
         (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t: 1.0),
-        'right':  (0.0, 1.0, lambda t: 1.0),
-        'bottom': (0.0, 1.0, lambda t: 1.0),
-        'top':    (0.0, 1.0, lambda t: 1.0)
+        'left':   (0.0, 1.0, lambda t, x, y: 1.0),
+        'right':  (0.0, 1.0, lambda t, x, y: 1.0),
+        'bottom': (0.0, 1.0, lambda t, x, y: 1.0),
+        'top':    (0.0, 1.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_N"),
     (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t: 1.0),
-        'right':  (1.0, 0.0, lambda t: 1.0),
-        'bottom': (1.0, 0.0, lambda t: 1.0),
-        'top':    (1.0, 0.0, lambda t: 1.0)
+        'left':   (1.0, 0.0, lambda t, x, y: 1.0),
+        'right':  (1.0, 0.0, lambda t, x, y: 1.0),
+        'bottom': (1.0, 0.0, lambda t, x, y: 1.0),
+        'top':    (1.0, 0.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_D"),
     (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t: 1.0),
-        'right':  (1.0, 1.0, lambda t: 1.0),
-        'bottom': (1.0, 1.0, lambda t: 1.0),
-        'top':    (1.0, 1.0, lambda t: 1.0)
+        'left':   (1.0, 1.0, lambda t, x, y: 1.0),
+        'right':  (1.0, 1.0, lambda t, x, y: 1.0),
+        'bottom': (1.0, 1.0, lambda t, x, y: 1.0),
+        'top':    (1.0, 1.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_R"),
     (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t: 0.0),
-        'right':  (0.0, 1.0, lambda t: 0.0),
-        'bottom': (0.0, 1.0, lambda t: 0.0),
-        'top':    (0.0, 1.0, lambda t: 0.0)
+        'left':   (0.0, 1.0, lambda t, x, y: 0.0),
+        'right':  (0.0, 1.0, lambda t, x, y: 0.0),
+        'bottom': (0.0, 1.0, lambda t, x, y: 0.0),
+        'top':    (0.0, 1.0, lambda t, x, y: 0.0)
     }, u_0_2D, 2, "HG_N"),
     (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t: 0.0),
-        'right':  (1.0, 0.0, lambda t: 0.0),
-        'bottom': (1.0, 0.0, lambda t: 0.0),
-        'top':    (1.0, 0.0, lambda t: 0.0)
+        'left':   (1.0, 0.0, lambda t, x, y: 0.0),
+        'right':  (1.0, 0.0, lambda t, x, y: 0.0),
+        'bottom': (1.0, 0.0, lambda t, x, y: 0.0),
+        'top':    (1.0, 0.0, lambda t, x, y: 0.0)
     }, u_0_2D, 2, "HG_D"),
     (lambda x, y, t: 0, {
         # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t: 0.0),
-        'right':  (1.0, 1.0, lambda t: 0.0),
-        'bottom': (1.0, 1.0, lambda t: 0.0),
-        'top':    (1.0, 1.0, lambda t: 0.0)
+        'left':   (1.0, 1.0, lambda t, x, y: 0.0),
+        'right':  (1.0, 1.0, lambda t, x, y: 0.0),
+        'bottom': (1.0, 1.0, lambda t, x, y: 0.0),
+        'top':    (1.0, 1.0, lambda t, x, y: 0.0)
     }, u_0_2D, 2, "HG_R"),
     (lambda x, y, t: np.exp(-x**2 - y**2), {
         # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t: 1.0),
-        'right':  (0.0, 1.0, lambda t: 1.0),
-        'bottom': (0.0, 1.0, lambda t: 1.0),
-        'top':    (0.0, 1.0, lambda t: 1.0)
+        'left':   (0.0, 1.0, lambda t, x, y: 1.0),
+        'right':  (0.0, 1.0, lambda t, x, y: 1.0),
+        'bottom': (0.0, 1.0, lambda t, x, y: 1.0),
+        'top':    (0.0, 1.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_N_gaussian"),
     (lambda x, y, t:  np.exp(-x**2 - y**2), {
         # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t: 1.0),
-        'right':  (1.0, 0.0, lambda t: 1.0),
-        'bottom': (1.0, 0.0, lambda t: 1.0),
-        'top':    (1.0, 0.0, lambda t: 1.0)
+        'left':   (1.0, 0.0, lambda t, x, y: 1.0),
+        'right':  (1.0, 0.0, lambda t, x, y: 1.0),
+        'bottom': (1.0, 0.0, lambda t, x, y: 1.0),
+        'top':    (1.0, 0.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_D_gaussian"),
     (lambda x, y, t:  np.exp(-x**2 - y**2), {
         # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t: 1.0),
-        'right':  (1.0, 1.0, lambda t: 1.0),
-        'bottom': (1.0, 1.0, lambda t: 1.0),
-        'top':    (1.0, 1.0, lambda t: 1.0)
+        'left':   (1.0, 1.0, lambda t, x, y: 1.0),
+        'right':  (1.0, 1.0, lambda t, x, y: 1.0),
+        'bottom': (1.0, 1.0, lambda t, x, y: 1.0),
+        'top':    (1.0, 1.0, lambda t, x, y: 1.0)
     }, u_0_2D, 2, "NHG_R_gaussian"),
     (lambda x, y, t:  np.exp(-x**2 - y**2), {
         # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y: 0.0),
+        'right':  (0.0, 1.0, lambda t, x, y: 0.0),
+        'bottom': (0.0, 1.0, lambda t, x, y: 0.0),
+        'top':    (0.0, 1.0, lambda t, x, y: 0.0)
+    }, u_0_2D, 2, "HG_N_gaussian"),
+    (lambda x, y, t:  np.exp(-x**2 - y**2), {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y: 0.0),
+        'right':  (1.0, 0.0, lambda t, x, y: 0.0),
+        'bottom': (1.0, 0.0, lambda t, x, y: 0.0),
+        'top':    (1.0, 0.0, lambda t, x, y: 0.0)
+    }, u_0_2D, 2, "HG_D_gaussian"),
+    (lambda x, y, t:  np.exp(-x**2 - y**2), {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y: 0.0),
+        'right':  (1.0, 1.0, lambda t, x, y: 0.0),
+        'bottom': (1.0, 1.0, lambda t, x, y: 0.0),
+        'top':    (1.0, 1.0, lambda t, x, y: 0.0)
+    }, u_0_2D, 2, "HG_R_gaussian")]
+
+    tests_3D = [
+    (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y, z: 0.0),
+        'right':  (1.0, 0.0, lambda t, x, y, z: 0.0),
+        'bottom': (1.0, 0.0, lambda t, x, y, z: 0.0),
+        'top':    (1.0, 0.0, lambda t, x, y, z: 0.0),
+        'front':  (1.0, 0.0, lambda t, x, y, z: 0.0),
+        'back':   (1.0, 0.0, lambda t, x, y, z: 0.0)
+    }, u_0_3D, 3, "3D_HG_D"),
+     (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y, z: 0.0),
+        'right':  (0.0, 1.0, lambda t, x, y, z: 0.0),
+        'bottom': (0.0, 1.0, lambda t, x, y, z: 0.0),
+        'top':    (0.0, 1.0, lambda t, x, y, z: 0.0),
+        'front':  (0.0, 1.0, lambda t, x, y, z: 0.0),
+        'back':   (0.0, 1.0, lambda t, x, y, z: 0.0)
+    }, u_0_3D, 3, "3D_HG_N"),
+     (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y, z: 0.0),
+        'right':  (1.0, 1.0, lambda t, x, y, z: 0.0),
+        'bottom': (1.0, 1.0, lambda t, x, y, z: 0.0),
+        'top':    (1.0, 1.0, lambda t, x, y, z: 0.0),
+        'front':  (1.0, 1.0, lambda t, x, y, z: 0.0),
+        'back':   (1.0, 1.0, lambda t, x, y, z: 0.0)
+    }, u_0_3D, 3, "3D_HG_R"),
+     (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y, z: 1.0),
+        'right':  (1.0, 0.0, lambda t, x, y, z: 1.0),
+        'bottom': (1.0, 0.0, lambda t, x, y, z: 1.0),
+        'top':    (1.0, 0.0, lambda t, x, y, z: 1.0),
+        'front':  (1.0, 0.0, lambda t, x, y, z: 1.0),
+        'back':   (1.0, 0.0, lambda t, x, y, z: 1.0)
+    }, u_0_3D, 3, "3D_NHG_D"),
+     (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y, z: 1.0),
+        'right':  (0.0, 1.0, lambda t, x, y, z: 1.0),
+        'bottom': (0.0, 1.0, lambda t, x, y, z: 1.0),
+        'top':    (0.0, 1.0, lambda t, x, y, z: 1.0),
+        'front':  (0.0, 1.0, lambda t, x, y, z: 1.0),
+        'back':   (0.0, 1.0, lambda t, x, y, z: 1.0)
+    }, u_0_3D, 3, "3D_NHG_N"),
+     (lambda x, y, z, t: 0.0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y, z: 1.0),
+        'right':  (1.0, 1.0, lambda t, x, y, z: 1.0),
+        'bottom': (1.0, 1.0, lambda t, x, y, z: 1.0),
+        'top':    (1.0, 1.0, lambda t, x, y, z: 1.0),
+        'front':  (1.0, 1.0, lambda t, x, y, z: 1.0),
+        'back':   (1.0, 1.0, lambda t, x, y, z: 1.0)
+    }, u_0_3D, 3, "3D_NHG_R"),
+    ]
+
+    tests_NHG = [(lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y: np.sin(y)),
+        'right':  (0.0, 1.0, lambda t, x, y: np.sin(y)),
+        'bottom': (0.0, 1.0, lambda t, x, y: np.sin(x)),
+        'top':    (0.0, 1.0, lambda t, x, y: np.sin(x))
+    }, u_0_2D, 2, "NHG_N_sin"),
+    (lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y: np.sin(y)),
+        'right':  (1.0, 0.0, lambda t, x, y: np.sin(y)),
+        'bottom': (1.0, 0.0, lambda t, x, y: np.sin(x)),
+        'top':    (1.0, 0.0, lambda t, x, y: np.sin(x))
+    }, u_0_2D, 2, "NHG_D_sin"),
+    (lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y: np.sin(y)),
+        'right':  (1.0, 1.0, lambda t, x, y: np.sin(y)),
+        'bottom': (1.0, 1.0, lambda t, x, y: np.sin(x)),
+        'top':    (1.0, 1.0, lambda t, x, y: np.sin(x))
+    }, u_0_2D, 2, "NHG_R_sin"),
+    (lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y: t*np.sin(y)),
+        'right':  (1.0, 1.0, lambda t, x, y: t*np.sin(y)),
+        'bottom': (1.0, 1.0, lambda t, x, y: t*np.sin(x)),
+        'top':    (1.0, 1.0, lambda t, x, y: t*np.sin(x))
+    }, u_0_2D, 2, "NHG_R_sin_t"),
+    (lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y: t*np.sin(y)),
+        'right':  (0.0, 1.0, lambda t, x, y: t*np.sin(y)),
+        'bottom': (0.0, 1.0, lambda t, x, y: t*np.sin(x)),
+        'top':    (0.0, 1.0, lambda t, x, y: t*np.sin(x))
+    }, u_0_2D, 2, "NHG_N_sin_t"),
+    (lambda x, y, t: 0, {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y: t*np.sin(y)),
+        'right':  (1.0, 0.0, lambda t, x, y: t*np.sin(y)),
+        'bottom': (1.0, 0.0, lambda t, x, y: t*np.sin(x)),
+        'top':    (1.0, 0.0, lambda t, x, y: t*np.sin(x))
+    }, u_0_2D, 2, "NHG_D_sin_t")
+
+    
+    ]
+
+    list_of_tests = []
+    if run_2D:
+        list_of_tests.extend(tests_2D)
+    if run_3D:
+        list_of_tests.extend(tests_3D)
+    if run_value_NHG:
+        list_of_tests.extend(tests_NHG)
+
+    for test in list_of_tests:
+        F_test, BCs_test, IC_test, dim_test, save_path_temp_test = test
+        print(f"\nRunning test: {save_path_temp_test}")
+        if dim_test == 2:
+            main(initial_condition = IC_test, boundary_conditions = BCs_test, a = a, b = b, x_domain = x_domain, y_domain = y_domain, t_domain = t_domain, dx = dx, dy = dy, dt = dt, dimension = 2, F = F_test, save_path_temp = save_path_temp_test)
+        elif dim_test == 3:
+            main(initial_condition = IC_test, boundary_conditions = BCs_test, a = a, b = b, c = c, x_domain = x_domain, y_domain = y_domain, z_domain = z_domain, t_domain = t_domain, dx = dx_3, dy = dy_3, dz = dz_3, dt = dt_3, dimension = 3, F = F_test, save_path_temp = save_path_temp_test)
+    
+def stability_tests(dim = 2):
+    dx_range = [0.001, 0.005, 0.01, 0.05, 0.1]
+    dt_range = [0.0005, 0.001, 0.005, 0.01, 0.05]
+
+
+    if dim == 2:
+        BCs = {
         'left':   (0.0, 1.0, lambda t: 0.0),
         'right':  (0.0, 1.0, lambda t: 0.0),
         'bottom': (0.0, 1.0, lambda t: 0.0),
         'top':    (0.0, 1.0, lambda t: 0.0)
-    }, u_0_2D, 2, "HG_N_gaussian"),
-    (lambda x, y, t:  np.exp(-x**2 - y**2), {
-        # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t: 0.0),
-        'right':  (1.0, 0.0, lambda t: 0.0),
-        'bottom': (1.0, 0.0, lambda t: 0.0),
-        'top':    (1.0, 0.0, lambda t: 0.0)
-    }, u_0_2D, 2, "HG_D_gaussian"),
-    (lambda x, y, t:  np.exp(-x**2 - y**2), {
-        # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t: 0.0),
-        'right':  (1.0, 1.0, lambda t: 0.0),
-        'bottom': (1.0, 1.0, lambda t: 0.0),
-        'top':    (1.0, 1.0, lambda t: 0.0)
-    }, u_0_2D, 2, "HG_R_gaussian"),
-    (lambda x, y, z, t: 0.0, {
-        # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t: 0.0),
-        'right':  (1.0, 0.0, lambda t: 0.0),
-        'bottom': (1.0, 0.0, lambda t: 0.0),
-        'top':    (1.0, 0.0, lambda t: 0.0),
-        'front':  (1.0, 0.0, lambda t: 0.0),
-        'back':   (1.0, 0.0, lambda t: 0.0)
-    }, u_0_3D, 3, "3D_HG_D"),
-     (lambda x, y, z, t: 0.0, {
-        # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t: 0.0),
-        'right':  (0.0, 1.0, lambda t: 0.0),
-        'bottom': (0.0, 1.0, lambda t: 0.0),
-        'top':    (0.0, 1.0, lambda t: 0.0),
-        'front':  (0.0, 1.0, lambda t: 0.0),
-        'back':   (0.0, 1.0, lambda t: 0.0)
-    }, u_0_3D, 3, "3D_HG_N"),
-     (lambda x, y, z, t: 0.0, {
-        # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t: 0.0),
-        'right':  (1.0, 1.0, lambda t: 0.0),
-        'bottom': (1.0, 1.0, lambda t: 0.0),
-        'top':    (1.0, 1.0, lambda t: 0.0),
-        'front':  (1.0, 1.0, lambda t: 0.0),
-        'back':   (1.0, 1.0, lambda t: 0.0)
-    }, u_0_3D, 3, "3D_HG_R"),
-    ]
+    }
+    elif dim == 3:
+        BCs = {
+            'left':   (0.0, 1.0, lambda t: 0.0),
+            'right':  (0.0, 1.0, lambda t: 0.0),
+            'bottom': (0.0, 1.0, lambda t: 0.0),
+            'top':    (0.0, 1.0, lambda t: 0.0),
+            'front':  (0.0, 1.0, lambda t: 0.0),
+            'back':   (0.0, 1.0, lambda t: 0.0)
+        }
 
-    for test in list_of_tests:
-        F_test, BCs_test, IC_test, dim_test, save_path_temp_test = test
-        if dim_test == 2:
-            main(initial_condition = IC_test, boundary_conditions = BCs_test, a = a, b = b, x_domain = x_domain, y_domain = y_domain, t_domain = t_domain, dx = dx, dy = dy, dt = dt, dimension = 2, F = F_test, save_path_temp = save_path_temp_test)
-        elif dim_test == 3:
-            main(initial_condition = IC_test, boundary_conditions = BCs_test, a = a, b = b, c = c, x_domain = x_domain, y_domain = y_domain, z_domain = z_domain, t_domain = t_domain, dx = dx, dy = dy, dz = dz, dt = dt, dimension = 3, F = F_test, save_path_temp = save_path_temp_test)
+    # dictionary to hold stability results
+    # {dx, dt, dim: stable (True/False)}
+    stable_dict = {}
+
+    for dx in dx_range:
+        for dt in dt_range:
+            print(f"Testing stability for dx={dx}, dt={dt}, dim={dim}")
+            # if any u value goes above 10 or below -10, consider unstable
+            u_i = main(dx = dx, dy = dx, dt = dt, dimension = dim, boundary_conditions = BCs, save_path_temp = None)
+            if any(np.abs(u_i) > 10):
+                stable_dict[(dx, dt, dim)] = False
+            else:
+                stable_dict[(dx, dt, dim)] = True
+
+    # save dict results to a file
+
+    save_path = "dim_" + str(dim) + "_stability_results.txt"
+
+    with open(save_path, "w") as f:
+        for key, value in stable_dict.items():
+            f.write(f"dx: {key[0]}, dt: {key[1]}, dim: {key[2]} => stable: {value}\n")
+
+def stability_tests_plotter(file_path = None):
+    if file_path is None:
+        file_path = "stability_results.txt"
+
+    dx_vals = []
+    dt_vals = []
+    stability_vals = []
+
+    with open(file_path, "r") as f:
+        for line in f:
+            parts = line.strip().split("=>")
+            params_part = parts[0].strip()
+            stability_part = parts[1].strip()
+
+            # extract dx and dt
+            params = params_part.split(",")
+            dx = float(params[0].split(":")[1].strip())
+            dt = float(params[1].split(":")[1].strip())
+
+            stability = stability_part.split(":")[1].strip() == "True"
+
+            dx_vals.append(dx)
+            dt_vals.append(dt)
+            stability_vals.append(stability)
+
+    # Convert to numpy arrays for easier indexing
+    dx_vals = np.array(dx_vals)
+    dt_vals = np.array(dt_vals)
+    stability_vals = np.array(stability_vals)
+
+    # plot heat map of stability region
+    plt.figure()
+    for stable in [True, False]:
+        mask = (stability_vals == stable)
+        plt.scatter(dx_vals[mask], dt_vals[mask], label=f'Stable: {stable}', alpha=0.7)
+
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel('dx')
+    plt.ylabel('dt')
+    plt.title('Stability Region')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
     
+
+
+
 if __name__ == "__main__":
 
-    """
-    x_domain = (0, 1)
-    y_domain = (0, 1)
-    z_domain = (0, 1)
-    t_domain = (0, 1)
-
-    dx = 0.01
-    dy = 0.01
-    dz = 0.01
-    dt = 0.005
-
-    a = 1.0
-    b = 1.0
-    c = 1.0
-
-    n_x = int((x_domain[1] - x_domain[0]) / dx) + 1
-    n_y = int((y_domain[1] - y_domain[0]) / dy) + 1
-    n_z = int((z_domain[1] - z_domain[0]) / dz) + 1
-
-    n_t = int((t_domain[1] - t_domain[0]) / dt) + 1
-
-    # initial condition
-
-    u_0_2D = np.zeros((n_x, n_y))
-    for i in range(n_x):
-        for j in range(n_y):
-            x = x_domain[0] + i*dx
-            y = y_domain[0] + j*dy
-            u_0_2D[i, j] = np.sin(np.pi*x/0.1) * np.sin(np.pi*y/0.1)
-
-    u_0_3D = np.zeros((n_x, n_y, n_z))
-    for i in range(n_x):
-        for j in range(n_y):
-            for k in range(n_z):
-                x = x_domain[0] + i*dx
-                y = y_domain[0] + j*dy
-                z = z_domain[0] + k*dz
-                u_0_3D[i, j, k] = np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
+    tests_to_run(run_2D=False, run_3D=False, run_value_NHG=True)
     
-    # forcing term
-    F_2D = lambda x, y, t: 0
-    F_3D = lambda x, y, z, t: np.exp(-t) * np.sin(np.pi*x) * np.sin(np.pi*y) * np.sin(np.pi*z)
-
-    # boundary conditions
-    boundary_conditions_2D = {
-        # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t: 1.0),
-        'right':  (0.0, 1.0, lambda t: 1.0),
-        'bottom': (0.0, 1.0, lambda t: 1.0),
-        'top':    (0.0, 1.0, lambda t: 1.0)
-    }
-
-
-    boundary_conditions_3D = {
-        'left':   (1.0, 0.0, lambda t: 0.0),
-        'right':  (1.0, 0.0, lambda t: 0.0),
-        'bottom': (1.0, 0.0, lambda t: 0.0),
-        'top':    (1.0, 0.0, lambda t: 0.0),
-        'front':  (1.0, 0.0, lambda t: 0.0),
-        'back':   (1.0, 0.0, lambda t: 0.0)
-    }
-
-    main(initial_condition = u_0_2D, boundary_conditions = boundary_conditions_2D, a = a, b = b, x_domain = x_domain, y_domain = y_domain, t_domain = t_domain, dx = dx, dy = dy, dt = dt, dimension = 2, F = F_2D)
-    #main(initial_condition = u_0_3D, boundary_conditions = boundary_conditions_3D, a = a, b = b, c = c, x_domain = x_domain, y_domain = y_domain, z_domain = z_domain, t_domain = t_domain, dx = dx, dy = dy, dz = dz, dt = dt, dimension = 3, F = F_3D)
-    """
-
-    tests_to_run()
