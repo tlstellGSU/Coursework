@@ -557,7 +557,7 @@ def main(initial_condition = None, boundary_conditions = None, a = 1.0, b = 1.0,
         animate_solution_3d(u_soln, x_domain, y_domain, z_slice_index = int(len(zs)/2), interval=100, save_path_temp = save_path_temp, a = a, b = b, c = c)
         return u_soln, xs, ys, zs, times
     
-def tests_to_run(run_2D = False, run_3D = True, run_value_NHG = True):
+def tests_to_run(run_2D = False, run_3D = True, run_value_NHG = True, run_value_NHG_3D = True):
     x_domain = (0, 1)
     y_domain = (0, 1)
     z_domain = (0, 1)
@@ -746,50 +746,58 @@ def tests_to_run(run_2D = False, run_3D = True, run_value_NHG = True):
     }, u_0_3D, 3, "3D_NHG_R"),
     ]
 
-    tests_NHG = [(lambda x, y, t: 0, {
+    tests_NHG = [
+    (lambda x, y, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.exp(-0.001*t), {
         # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t, x, y: np.sin(y)),
-        'right':  (0.0, 1.0, lambda t, x, y: np.sin(y)),
-        'bottom': (0.0, 1.0, lambda t, x, y: np.sin(x)),
-        'top':    (0.0, 1.0, lambda t, x, y: np.sin(x))
-    }, u_0_2D, 2, "NHG_N_sin"),
-    (lambda x, y, t: 0, {
+        'left':   (1.0, 0.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'right':  (1.0, 0.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'bottom': (1.0, 0.0, lambda t, x, y: np.sin(np.pi*x/0.001)),
+        'top':    (1.0, 0.0, lambda t, x, y: np.sin(np.pi*x/0.001))
+    }, u_0_2D, 2, "NHG_D_sin_forced"),
+    (lambda x, y, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.exp(-0.001*t), {
         # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t, x, y: np.sin(y)),
-        'right':  (1.0, 0.0, lambda t, x, y: np.sin(y)),
-        'bottom': (1.0, 0.0, lambda t, x, y: np.sin(x)),
-        'top':    (1.0, 0.0, lambda t, x, y: np.sin(x))
-    }, u_0_2D, 2, "NHG_D_sin"),
-    (lambda x, y, t: 0, {
+        'left':   (0.0, 1.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'right':  (0.0, 1.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'bottom': (0.0, 1.0, lambda t, x, y: np.sin(np.pi*x/0.001)),
+        'top':    (0.0, 1.0, lambda t, x, y: np.sin(np.pi*x/0.001))
+    }, u_0_2D, 2, "NHG_N_sin_forced"),
+    (lambda x, y, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.exp(-0.001*t), {
         # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t, x, y: np.sin(y)),
-        'right':  (1.0, 1.0, lambda t, x, y: np.sin(y)),
-        'bottom': (1.0, 1.0, lambda t, x, y: np.sin(x)),
-        'top':    (1.0, 1.0, lambda t, x, y: np.sin(x))
-    }, u_0_2D, 2, "NHG_R_sin"),
-    (lambda x, y, t: 0, {
-        # u + u_x = f(t)
-        'left':   (1.0, 1.0, lambda t, x, y: t*np.sin(y)),
-        'right':  (1.0, 1.0, lambda t, x, y: t*np.sin(y)),
-        'bottom': (1.0, 1.0, lambda t, x, y: t*np.sin(x)),
-        'top':    (1.0, 1.0, lambda t, x, y: t*np.sin(x))
-    }, u_0_2D, 2, "NHG_R_sin_t"),
-    (lambda x, y, t: 0, {
-        # u + u_x = f(t)
-        'left':   (0.0, 1.0, lambda t, x, y: t*np.sin(y)),
-        'right':  (0.0, 1.0, lambda t, x, y: t*np.sin(y)),
-        'bottom': (0.0, 1.0, lambda t, x, y: t*np.sin(x)),
-        'top':    (0.0, 1.0, lambda t, x, y: t*np.sin(x))
-    }, u_0_2D, 2, "NHG_N_sin_t"),
-    (lambda x, y, t: 0, {
-        # u + u_x = f(t)
-        'left':   (1.0, 0.0, lambda t, x, y: t*np.sin(y)),
-        'right':  (1.0, 0.0, lambda t, x, y: t*np.sin(y)),
-        'bottom': (1.0, 0.0, lambda t, x, y: t*np.sin(x)),
-        'top':    (1.0, 0.0, lambda t, x, y: t*np.sin(x))
-    }, u_0_2D, 2, "NHG_D_sin_t")
+        'left':   (1.0, 1.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'right':  (1.0, 1.0, lambda t, x, y: np.sin(np.pi*y/0.001)),
+        'bottom': (1.0, 1.0, lambda t, x, y: np.sin(np.pi*x/0.001)),
+        'top':    (1.0, 1.0, lambda t, x, y: np.sin(np.pi*x/0.001))
+    }, u_0_2D, 2, "NHG_R_sin_forced")
+    ]
 
-    
+    tests_NHG_3D = [
+    (lambda x, y, z, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.sin(np.pi*z/0.01)*np.exp(-0.001*t), {
+        # u + u_x = f(t)
+        'left':   (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'right':  (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'bottom': (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'top':    (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'front':  (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001)),
+        'back':   (0.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001))
+    }, u_0_3D, 3, "3D_HG_N_forced"),
+    (lambda x, y, z, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.sin(np.pi*z/0.01)*np.exp(-0.001*t), {
+        # u + u_x = f(t)
+        'left':   (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'right':  (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'bottom': (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'top':    (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'front':  (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001)),
+        'back':   (1.0, 1.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001))
+    }, u_0_3D, 3, "3D_HG_R_forced"),
+    (lambda x, y, z, t: np.sin(np.pi*x/0.01)*np.sin(np.pi*y/0.01)*np.sin(np.pi*z/0.01)*np.exp(-0.001*t), {
+        # u + u_x = f(t)
+        'left':   (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'right':  (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*y/0.001)*np.sin(np.pi*z/0.001)),
+        'bottom': (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'top':    (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*z/0.001)),
+        'front':  (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001)),
+        'back':   (1.0, 0.0, lambda t, x, y, z: np.sin(np.pi*x/0.001)*np.sin(np.pi*y/0.001))
+    }, u_0_3D, 3, "3D_HG_D_forced"),
     ]
 
     list_of_tests = []
@@ -799,6 +807,8 @@ def tests_to_run(run_2D = False, run_3D = True, run_value_NHG = True):
         list_of_tests.extend(tests_3D)
     if run_value_NHG:
         list_of_tests.extend(tests_NHG)
+    if run_value_NHG_3D:
+        list_of_tests.extend(tests_NHG_3D)
 
     for test in list_of_tests:
         F_test, BCs_test, IC_test, dim_test, save_path_temp_test = test
@@ -902,5 +912,5 @@ def stability_tests_plotter(file_path = None):
 
 if __name__ == "__main__":
 
-    tests_to_run(run_2D=False, run_3D=False, run_value_NHG=True)
+    tests_to_run(run_2D=False, run_3D=False, run_value_NHG=False, run_value_NHG_3D=True)
     

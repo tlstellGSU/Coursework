@@ -1,0 +1,511 @@
+---
+title: "STAT 8561: Linear Statistical Analysis 1"
+subtitle: "Homework 2"
+author: "Tommy Stell"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    number_sections: false
+  html_document:
+    toc: true
+    toc_float: true
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***
+
+# Question 1: Least Squares: Assumptions and Consequences [6]
+
+Consider $\mathbf{Y}=\mathbf{X}\boldsymbol{\beta}+\boldsymbol{\varepsilon}$, where $\mathbf{X}$ is fixed, has full column rank, and $n>p$. Select one answer per part.
+
+**(a) Changing the distributional assumption [2]**
+
+Two students use the same observed $\mathbf{X}$ and $\mathbf{Y}$. One assumes normal errors; the other does not specify an error distribution. Both define their estimate by minimizing
+$$
+S(\boldsymbol{\beta})=\|\mathbf{Y}-\mathbf{X}\boldsymbol{\beta}\|^2.
+$$
+
+Which statement is correct?
+
+A. The second student cannot compute a least squares estimate. \
+B. The estimates must differ because the distributional assumptions differ. \
+C. The estimates are the same because they minimize the same criterion for the same data. \
+D. The estimates are the same only if the observed residuals are all zero.
+
+**(b) What makes the minimizer unique? [2]**
+
+Which statement explains why solving the normal equations gives a unique least squares minimizer under the stated assumptions?
+
+A. Full column rank makes $\mathbf{X}^\top\mathbf{X}$ positive definite. \
+B. Normal errors make every system of normal equations invertible. \
+C. Having more observations than parameters guarantees full column rank for any design matrix. \
+D. Minimizing the sum of squared residuals forces every residual to be zero.
+
+**(c) Shifting every response [2]**
+
+Now suppose the model includes an intercept. Add 5 to every observed response, keep all predictors unchanged, and refit the same model by least squares. What happens?
+
+A. Every slope increases by 5, while the intercept is unchanged. \
+B. The coefficients are unchanged, and every residual increases by 5. \
+C. The intercept increases by 5, and every residual increases by 5. \
+D. The intercept increases by 5, the slopes are unchanged, and the residuals are unchanged.
+
+### Ans:
+
+a.) C
+
+Least squares is just an optimization problem on the data: we are minimizing $S(\boldsymbol{\beta}) = \|\mathbf{Y}-\mathbf{X}\boldsymbol{\beta}\|^2$. Since this criterion depends only on $\mathbf{X}$ and $\mathbf{Y}$ and doesn't rely on any distribution for the error term $\boldsymbol{\varepsilon}$, both students are solving the exact same minimization problem,
+$$
+\hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}}\|\mathbf{Y}-\mathbf{X}\boldsymbol{\beta}\|^2 = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{Y},
+$$
+and arrive at the exact same estimate. The distributional assumptions (like normality) only matter later when doing inference and confidence intervals, not for finding the point estimate itself.
+
+b.) A
+
+Taking the gradient of $S(\boldsymbol{\beta})$, we have $\nabla S(\boldsymbol{\beta}) = -2\mathbf{X}^\top\mathbf{Y} + 2\mathbf{X}^\top\mathbf{X}\boldsymbol{\beta}$. Differentiating once more gives the Hessian,
+$$
+\frac{\partial^2 S(\boldsymbol{\beta})}{\partial\boldsymbol{\beta}\,\partial\boldsymbol{\beta}^\top} = 2\mathbf{X}^\top\mathbf{X}.
+$$
+For any non-zero vector $\mathbf{v}\neq\mathbf{0}$,
+$$
+\mathbf{v}^\top\mathbf{X}^\top\mathbf{X}\mathbf{v} = \|\mathbf{X}\mathbf{v}\|^2 > 0,
+$$
+which is strictly positive because $\mathbf{X}$ having full column rank means $\mathbf{X}\mathbf{v} = \mathbf{0}$ only if $\mathbf{v} = \mathbf{0}$. Thus, $\mathbf{X}^\top\mathbf{X}$ is positive definite, which means it is invertible and $S(\boldsymbol{\beta})$ is strictly convex, giving a unique minimizer. Option C fails because simply having $n > p$ does not guarantee that the columns of $\mathbf{X}$ are linearly independent.
+
+c.) D
+
+Let the new response vector be $\mathbf{Y}^* = \mathbf{Y} + 5\cdot\mathbf{1}_n$. Because the model includes an intercept, $\mathbf{1}_n$ is the first column of $\mathbf{X}$, which we can write as $\mathbf{1}_n = \mathbf{X}\mathbf{u}_1$ where $\mathbf{u}_1 = (1, 0, \ldots, 0)^\top$. Refitting gives,
+$$
+\begin{aligned}
+    \hat{\boldsymbol{\beta}}^* &= (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top(\mathbf{Y} + 5\mathbf{X}\mathbf{u}_1) \\
+    &= \hat{\boldsymbol{\beta}} + 5(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{X}\mathbf{u}_1 \\
+    &= \hat{\boldsymbol{\beta}} + 5\mathbf{u}_1
+\end{aligned}
+$$
+So only the intercept increases by 5, while all the slopes stay the same. For the residuals,
+$$
+\mathbf{e}^* = \mathbf{M}\mathbf{Y}^* = \mathbf{M}\mathbf{Y} + 5\mathbf{M}\mathbf{1}_n = \mathbf{e} + \mathbf{0} = \mathbf{e}
+$$
+since $\mathbf{1}_n$ is in the column space of $\mathbf{X}$ and $\mathbf{M}$ projects onto the orthogonal complement, annihilating $\mathbf{1}_n$. The residuals do not change at all.
+
+$$
+\square
+$$
+
+***
+
+# Question 2: Projection Geometry and Rank [8]
+
+For parts (a) and (c), let $\mathbf{X}$ have full column rank. Define
+$$
+\mathbf{H}=\mathbf{X}(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top,
+\quad \mathbf{M}=\mathbf{I}_n-\mathbf{H},
+\quad \hat{\mathbf{Y}}=\mathbf{H}\mathbf{Y},
+\quad \mathbf{e}=\mathbf{M}\mathbf{Y}.
+$$
+
+**(a) Projecting a second time [2]**
+
+A student applies $\mathbf{H}$ to the fitted vector and to the residual vector. Which pair of results must hold?
+
+A. $\mathbf{H}\hat{\mathbf{Y}}=\mathbf{0}$ and $\mathbf{H}\mathbf{e}=\mathbf{e}$. \
+B. $\mathbf{H}\hat{\mathbf{Y}}=\hat{\mathbf{Y}}$ and $\mathbf{H}\mathbf{e}=\mathbf{0}$. \
+C. $\mathbf{H}\hat{\mathbf{Y}}=\mathbf{Y}$ and $\mathbf{H}\mathbf{e}=\mathbf{e}$. \
+D. $\mathbf{H}\hat{\mathbf{Y}}=\hat{\mathbf{Y}}$ and $\mathbf{H}\mathbf{e}=\mathbf{e}$.
+
+**(b) Adding a redundant predictor [2]**
+
+Suppose $\mathbf{x}$ is not constant. Compare the least squares fits using
+$$
+\mathbf{X}=[\mathbf{1}_n,\mathbf{x}]
+\quad\text{and}\quad
+\mathbf{W}=[\mathbf{1}_n,\mathbf{x},2\mathbf{x}]
+$$
+for the same response vector. Which statement is correct?
+
+A. The extra column must strictly reduce SSE. \
+B. The fit using $\mathbf{W}$ does not exist because $\mathbf{W}^\top\mathbf{W}$ is singular. \
+C. The fit using $\mathbf{W}$ has nonunique coefficients, but its fitted values and SSE equal those from $\mathbf{X}$. \
+D. The fit using $\mathbf{W}$ has nonunique coefficients and therefore nonunique fitted values.
+
+**(c) Geometric consequences [4]**
+
+Enter T or F. Each statement is worth 1 point. Here $\bar Y=n^{-1}\sum_iY_i$.
+
+| Statement | T/F |
+|:----------|:---:|
+| (i) The uncentered identity $\mathbf{Y}^\top\mathbf{Y}=\hat{\mathbf{Y}}^\top\hat{\mathbf{Y}}+\mathbf{e}^\top\mathbf{e}$ holds for the least squares fit. | \_\_\_ |
+| (ii) The centered identity $\sum_i(Y_i-\bar Y)^2=\sum_i(\hat Y_i-\bar Y)^2+\mathrm{SSE}$ is guaranteed for every least squares model, even one without an intercept. | \_\_\_ |
+| (iii) If the model includes an intercept, the average fitted value equals the average observed response. | \_\_\_ |
+| (iv) The residual vector must be orthogonal to the observed response vector $\mathbf{Y}$ itself. | \_\_\_ |
+
+### Ans:
+
+a.) B
+
+$\mathbf{H}$ is an orthogonal projection matrix, so it is idempotent:
+$$
+\mathbf{H}^2 = \mathbf{X}(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{X}(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top = \mathbf{H}
+$$
+and $\mathbf{H}\mathbf{M} = \mathbf{H}(\mathbf{I}_n - \mathbf{H}) = \mathbf{H} - \mathbf{H}^2 = \mathbf{0}$. Therefore,
+$$
+\begin{aligned}
+    \mathbf{H}\hat{\mathbf{Y}} &= \mathbf{H}\mathbf{H}\mathbf{Y} = \mathbf{H}\mathbf{Y} = \hat{\mathbf{Y}} \\
+    \mathbf{H}\mathbf{e} &= \mathbf{H}\mathbf{M}\mathbf{Y} = \mathbf{0}
+\end{aligned}
+$$
+Geometrically, $\hat{\mathbf{Y}}$ is already in the column space $\mathcal{C}(\mathbf{X})$, so projecting it onto that space again does not change it. On the other hand, the residual $\mathbf{e}$ is orthogonal to $\mathcal{C}(\mathbf{X})$, so projecting it onto $\mathcal{C}(\mathbf{X})$ drops it straight to $\mathbf{0}$.
+
+b.) C
+
+Because the third column $2\mathbf{x}$ is a scalar multiple of $\mathbf{x}$, $\text{rank}(\mathbf{W}) = 2 < 3$, meaning $\mathbf{W}^\top\mathbf{W}$ is singular and cannot be inverted. This gives infinitely many choices for the coefficient vector $\boldsymbol{\beta}$. 
+
+However, adding a redundant column does not change the span:
+$$
+\mathcal{C}(\mathbf{W}) = \text{span}\{\mathbf{1}_n,\mathbf{x},2\mathbf{x}\} = \text{span}\{\mathbf{1}_n,\mathbf{x}\} = \mathcal{C}(\mathbf{X})
+$$
+Since $\hat{\mathbf{Y}}$ is simply the orthogonal projection of $\mathbf{Y}$ onto this column space, and projection onto a subspace is uniquely defined, the fitted values $\hat{\mathbf{Y}}$, the residuals $\mathbf{e}$, and $\text{SSE} = \mathbf{e}^\top\mathbf{e}$ are exactly the same as in the original model. So a fit definitely exists (making B false), but the coefficients are not unique.
+
+c.)
+&nbsp;&nbsp;&nbsp;&nbsp;i.) True
+
+Writing $\mathbf{Y} = \hat{\mathbf{Y}} + \mathbf{e}$, we can expand the sum of squares:
+$$
+\begin{aligned}
+    \mathbf{Y}^\top\mathbf{Y} &= (\hat{\mathbf{Y}} + \mathbf{e})^\top(\hat{\mathbf{Y}} + \mathbf{e}) \\
+    &= \hat{\mathbf{Y}}^\top\hat{\mathbf{Y}} + 2\hat{\mathbf{Y}}^\top\mathbf{e} + \mathbf{e}^\top\mathbf{e} \\
+    &= \hat{\mathbf{Y}}^\top\hat{\mathbf{Y}} + \mathbf{e}^\top\mathbf{e}
+\end{aligned}
+$$
+The cross-term is $\hat{\mathbf{Y}}^\top\mathbf{e} = \mathbf{Y}^\top\mathbf{H}\mathbf{M}\mathbf{Y} = 0$ since $\mathbf{H}\mathbf{M} = \mathbf{0}$. This is just the Pythagorean theorem for orthogonal vectors, and it holds whether or not there is an intercept in the model.
+
+&nbsp;&nbsp;&nbsp;&nbsp;ii.) False
+
+If we center by subtracting $\bar{Y}\mathbf{1}_n$, we get:
+$$
+\sum_i (Y_i - \bar{Y})^2 = \sum_i (\hat{Y}_i - \bar{Y})^2 + \text{SSE} + 2\sum_i (\hat{Y}_i - \bar{Y})e_i
+$$
+The cross-term is $2\hat{\mathbf{Y}}^\top\mathbf{e} - 2\bar{Y}\sum_i e_i = -2\bar{Y}\sum_i e_i$. This only drops to zero if $\sum_i e_i = 0$, which is only guaranteed when $\mathbf{1}_n \in \mathcal{C}(\mathbf{X})$ (meaning the model has an intercept). Without an intercept, $\sum_i e_i \neq 0$ in general, so the identity fails.
+
+&nbsp;&nbsp;&nbsp;&nbsp;iii.) True
+
+When the model includes an intercept, $\mathbf{1}_n$ is in the column space of $\mathbf{X}$, so $\mathbf{1}_n^\top\mathbf{e} = 0$, which means $\sum_i e_i = 0$. Then,
+$$
+\sum_i Y_i = \sum_i \hat{Y}_i + \sum_i e_i = \sum_i \hat{Y}_i \implies \frac{1}{n}\sum_i \hat{Y}_i = \frac{1}{n}\sum_i Y_i
+$$
+so the average fitted value equals the average observed response.
+
+&nbsp;&nbsp;&nbsp;&nbsp;iv.) False
+
+Multiplying $\mathbf{e}^\top$ by $\mathbf{Y} = \hat{\mathbf{Y}} + \mathbf{e}$ gives:
+$$
+\mathbf{e}^\top\mathbf{Y} = \mathbf{e}^\top\hat{\mathbf{Y}} + \mathbf{e}^\top\mathbf{e} = 0 + \text{SSE} = \text{SSE}
+$$
+This is only zero in the trivial case where the fit is perfect ($\text{SSE} = 0$). Residuals are orthogonal to the fitted values $\hat{\mathbf{Y}}$ and the predictors in $\mathbf{X}$, but they are not orthogonal to $\mathbf{Y}$ itself.
+
+$$
+\square
+$$
+
+***
+
+# Question 3: Sampling Properties and the Role of Normality [8]
+
+Throughout this question, $\mathbf{X}$ is fixed with full column rank, $n>p$, and $\sigma^2>0$.
+
+**(a) Match the result to its assumptions [4]**
+
+Choose the weakest sufficient set of assumptions among A, B, and C for each result. Each row is worth 1 point. Letters may be reused.
+
+A. The least squares criterion and full column rank alone; no error moment or distribution assumptions. \
+B. $\mathbb{E}(\boldsymbol{\varepsilon})=\mathbf{0}$ and $\operatorname{Var}(\boldsymbol{\varepsilon})=\sigma^2\mathbf{I}_n$, without assuming normality. \
+C. The normal linear model, $\boldsymbol{\varepsilon}\sim N_n(\mathbf{0},\sigma^2\mathbf{I}_n)$.
+
+| Result | Letter |
+|:-------|:------:|
+| (i) The least squares coefficient vector is the unique minimizer of $S(\boldsymbol{\beta})$. | \_\_\_ |
+| (ii) $\mathbb{E}(\hat{\boldsymbol{\beta}})=\boldsymbol{\beta}$. | \_\_\_ |
+| (iii) $\mathrm{SSE}/\sigma^2\sim\chi^2_{n-p}$. | \_\_\_ |
+| (iv) $\operatorname{Var}(\hat{\boldsymbol{\beta}})=\sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}$. | \_\_\_ |
+
+**(b) Why does independence follow? [2]**
+
+Under the normal linear model, which argument correctly explains why $\hat{\boldsymbol{\beta}}$ and $\mathrm{SSE}$ are independent?
+
+A. $\hat{\boldsymbol{\beta}}$ and $\mathbf{e}$ are jointly normal with zero covariance, and SSE is a function of $\mathbf{e}$. \
+B. Any two uncorrelated random vectors are independent, regardless of their distribution. \
+C. They estimate different parameters, so they must be independent. \
+D. Each observed residual is independent of every other observed residual in every normal linear model.
+
+**(c) Increasing the error variance [2]**
+
+Keep $\mathbf{X}$ and $\boldsymbol{\beta}$ fixed. In a second model, the errors still have mean zero, but their covariance is $4\sigma^2\mathbf{I}_n$ instead of $\sigma^2\mathbf{I}_n$. Which statement describes the sampling distribution's mean and covariance for the OLS estimator?
+
+A. Its mean and covariance are both multiplied by 4. \
+B. Its mean is unchanged, and its covariance is multiplied by 16. \
+C. Its mean and covariance are both unchanged. \
+D. Its mean is unchanged, and its covariance is multiplied by 4; each coefficient's standard deviation doubles.
+
+### Ans:
+
+a.)
+&nbsp;&nbsp;&nbsp;&nbsp;i.) A
+
+Minimizing $S(\boldsymbol{\beta})$ is purely an algebraic problem on fixed data. Having full column rank makes $\mathbf{X}^\top\mathbf{X}$ invertible and $S(\boldsymbol{\beta})$ strictly convex, guaranteeing a unique minimizer without assuming anything about the errors $\boldsymbol{\varepsilon}$.
+
+&nbsp;&nbsp;&nbsp;&nbsp;ii.) B
+
+Writing out the estimator,
+$$
+\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top(\mathbf{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon}) = \boldsymbol{\beta} + (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\boldsymbol{\varepsilon}
+$$
+Taking the expected value gives,
+$$
+\mathbb{E}[\hat{\boldsymbol{\beta}}] = \boldsymbol{\beta} + (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbb{E}[\boldsymbol{\varepsilon}] = \boldsymbol{\beta}
+$$
+This requires the errors to have mean zero ($\mathbb{E}[\boldsymbol{\varepsilon}] = \mathbf{0}$), so A is not enough. But assumption B provides this without needing full normality, making B the weakest sufficient set.
+
+&nbsp;&nbsp;&nbsp;&nbsp;iii.) C
+
+We can write $\text{SSE}/\sigma^2 = \boldsymbol{\varepsilon}^\top\mathbf{M}\boldsymbol{\varepsilon}/\sigma^2$. This is a quadratic form with $\mathbf{M}$ symmetric idempotent and $\text{rank}(\mathbf{M}) = n - p$. To get the exact $\chi^2_{n-p}$ distribution, the errors must follow a normal distribution. Under B alone, we can find the expected value $\mathbb{E}[\text{SSE}] = \sigma^2(n - p)$, but we cannot claim it follows a chi-square distribution without normality.
+
+&nbsp;&nbsp;&nbsp;&nbsp;iv.) B
+
+Using the variance formula,
+$$
+\begin{aligned}
+    \text{Var}(\hat{\boldsymbol{\beta}}) &= (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\,\text{Var}(\boldsymbol{\varepsilon})\,\mathbf{X}(\mathbf{X}^\top\mathbf{X})^{-1} \\
+    &= \sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{X}(\mathbf{X}^\top\mathbf{X})^{-1} \\
+    &= \sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}
+\end{aligned}
+$$
+This only requires the covariance of the errors to be $\text{Var}(\boldsymbol{\varepsilon}) = \sigma^2\mathbf{I}_n$. We don't need normality to find the variance of the estimator, so B is sufficient.
+
+b.) A
+
+Both $\hat{\boldsymbol{\beta}}$ and $\mathbf{e}$ are linear transformations of the error vector $\boldsymbol{\varepsilon}$:
+$$
+\hat{\boldsymbol{\beta}} - \boldsymbol{\beta} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\boldsymbol{\varepsilon}, \qquad \mathbf{e} = \mathbf{M}\boldsymbol{\varepsilon}
+$$
+Under the normal linear model, they are jointly normal. Computing their covariance gives,
+$$
+\text{Cov}(\hat{\boldsymbol{\beta}}, \mathbf{e}) = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top(\sigma^2\mathbf{I}_n)\mathbf{M}^\top = \sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}(\mathbf{M}\mathbf{X})^\top = \mathbf{0}
+$$
+because $\mathbf{M}\mathbf{X} = \mathbf{X} - \mathbf{H}\mathbf{X} = \mathbf{0}$. For jointly normal variables, having zero covariance implies independence. Since $\text{SSE} = \mathbf{e}^\top\mathbf{e}$ is just a function of the residual vector $\mathbf{e}$, it must be independent of $\hat{\boldsymbol{\beta}}$. Option B is false because zero covariance only implies independence under normality, and D is false because the covariance matrix of $\mathbf{e}$ is $\sigma^2\mathbf{M}$, which is not diagonal.
+
+c.) D
+
+The expectation of $\hat{\boldsymbol{\beta}}$ only depends on the mean of the errors, which is still zero, so $\mathbb{E}[\hat{\boldsymbol{\beta}}] = \boldsymbol{\beta}$ is unchanged. 
+
+Replacing $\sigma^2$ with $4\sigma^2$ in the covariance formula gives,
+$$
+\text{Var}(\hat{\boldsymbol{\beta}}) = 4\sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}
+$$
+So the covariance matrix is multiplied by 4 (not 16, since the variance factor enters linearly). Taking the square root for the standard errors, each coefficient's standard deviation is multiplied by $\sqrt{4} = 2$, meaning it doubles.
+
+$$
+\square
+$$
+
+***
+
+# Question 4: Interpreting Confidence and Prediction Intervals [6]
+
+Assume a correctly specified normal linear model. For prediction, a future observation has an error independent of the original data and with the same error variance.
+
+**(a) Mean response versus one future response [2]**
+
+At the same predictor value, software reports two intervals at the 95% level:
+
+- Interval I: $(2.493,\ 3.507)$;
+- Interval II: $(1.659,\ 4.341)$.
+
+One is a confidence interval for the mean response; the other is a prediction interval for one future response. Which interpretation is correct?
+
+A. I is the prediction interval because predicting one observation involves less uncertainty than estimating a mean. \
+B. Both intervals describe the same target; their different widths are only rounding error. \
+C. I is the mean-response interval; II is the prediction interval because it also accounts for the new observation's error. \
+D. II is the mean-response interval because averaging adds the new observation's error variance.
+
+**(b) Connecting a confidence interval and a test [2]**
+
+A 95% confidence interval for $\beta_1$ is $(0.4,\ 1.6)$. Consider the corresponding two-sided $t$ test of
+$$
+H_0:\beta_1=1\qquad\text{versus}\qquad H_1:\beta_1\neq1
+$$
+at $\alpha=0.05$. Which conclusion is correct?
+
+A. Reject $H_0$ because zero is outside the interval. \
+B. Fail to reject $H_0$ because 1 is inside the interval; this does not prove that $\beta_1=1$. \
+C. Accept $H_0$ as proven true because 1 is inside the interval. \
+D. No conclusion is possible because a $t$ test can only test a coefficient against zero.
+
+**(c) What an interval means [2]**
+
+Enter T or F. Each statement is worth 1 point. Assume a positive estimated error variance and $\mathbf{x}_0^\top(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{x}_0>0$.
+
+| Statement | T/F |
+|:----------|:---:|
+| (i) Holding the data and predictor value fixed, changing a mean-response confidence level from 95% to 99% makes the interval wider. | \_\_\_ |
+| (ii) A 95% confidence interval for the mean response is designed to contain 95% of individual future responses at that predictor value. | \_\_\_ |
+
+### Ans:
+
+a.) C
+
+At a given predictor value $\mathbf{x}_0$, the formulas for the two intervals are:
+$$
+\begin{aligned}
+    \text{CI:}&\quad \hat{Y}_0 \pm t_{0.975,n-p}\,\hat\sigma\sqrt{\mathbf{x}_0^\top(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{x}_0} \\
+    \text{PI:}&\quad \hat{Y}_0 \pm t_{0.975,n-p}\,\hat\sigma\sqrt{1+\mathbf{x}_0^\top(\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{x}_0}
+\end{aligned}
+$$
+The prediction interval has that extra $+1$ inside the square root to account for the random error $\varepsilon_0$ of the new observation, so it is always wider than the confidence interval for the mean response. 
+
+Looking at the numbers, both intervals are centered at $\hat{Y}_0 = 3.0$. Interval I has half-width $3.507 - 3 = 0.507$, while Interval II has half-width $4.341 - 3 = 1.341$. Since Interval II is wider, it must be the prediction interval and Interval I is the mean-response confidence interval.
+
+b.) B
+
+For a two-sided level-$\alpha$ test of $H_0: \beta_1 = c$, we reject the null hypothesis if and only if $c$ falls outside the $100(1-\alpha)\%$ confidence interval. 
+
+Here we are testing $c = 1$, and $1$ lies comfortably inside the interval $(0.4, 1.6)$. Therefore, we fail to reject $H_0$. Failing to reject doesn't mean we have proven that $\beta_1 = 1$; it just means 1 is plausible given the data (as are all other values in the interval). Option A is wrong because zero being outside the interval would test whether $\beta_1 = 0$, not $\beta_1 = 1$.
+
+c.)
+&nbsp;&nbsp;&nbsp;&nbsp;i.) True
+
+The half-width of the confidence interval is $t_{1-\alpha/2, n-p}\,\text{SE}(\hat{Y}_0)$. Increasing the confidence level from 95% to 99% increases the critical value ($t_{0.995, n-p} > t_{0.975, n-p}$). Since the standard error is held fixed, the interval has to become wider to have higher confidence.
+
+&nbsp;&nbsp;&nbsp;&nbsp;ii.) False
+
+A confidence interval for the mean response is designed to estimate the mean $\mathbb{E}[Y_0] = \mathbf{x}_0^\top\boldsymbol{\beta}$, not individual responses. Individual observations scatter around the mean with variance $\sigma^2$, so containing future observations requires a prediction interval, not a mean-response confidence interval.
+
+$$
+\square
+$$
+
+***
+
+# Question 5: Distribution and Inference [12]
+
+Suppose a multiple linear regression model has $n=20$ observations and $p=3$ parameters: an intercept and two slopes. The first column of $\mathbf{X}$ is $\mathbf{1}_{20}$. Assume
+$$
+\mathbf{Y}\sim N_{20}\!\left(\mathbf{X}\boldsymbol{\beta},\sigma^2\mathbf{I}_{20}\right).
+$$
+
+Suppose
+$$
+\hat{\boldsymbol{\beta}}=\begin{pmatrix}2.0\\1.5\\-0.5\end{pmatrix},
+\qquad
+(\mathbf{X}^\top\mathbf{X})^{-1}
+=\begin{pmatrix}0.05&0&0\\0&0.05&0\\0&0&0.08\end{pmatrix},
+$$
+and $\mathrm{SSE}=34$. Use $t_{0.975,17}=2.110$.
+
+**(a) [3]**
+
+Choose the correct distributions.
+
+For $\hat{\boldsymbol{\beta}}$:
+
+A. $N_3\!\left(\mathbf{0},\sigma^2\mathbf{I}_3\right)$ \
+B. $N_3\!\left(\boldsymbol{\beta},\sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}\right)$ \
+C. $t_{17}$ \
+D. $\chi^2_{17}$
+
+For $\mathrm{SSE}/\sigma^2$:
+
+A. $N(0,1)$ \
+B. $t_{17}$ \
+C. $\chi^2_{17}$ \
+D. $F_{3,17}$
+
+**(b) [2]**
+
+Compute
+$$
+\hat{\sigma}^2 = \frac{\mathrm{SSE}}{n-p} = \underline{\hspace{2cm}}.
+$$
+
+**(c) [4]**
+
+For testing
+$$
+H_0:\beta_1=0
+\qquad\text{versus}\qquad
+H_1:\beta_1\neq0,
+$$
+where $\beta_1$ is the second entry of $\boldsymbol{\beta}$, fill in the following. Use significance level $\alpha=0.05$.
+$$
+\mathrm{SE}(\hat{\beta}_1)=\underline{\hspace{2cm}},
+\qquad t=\underline{\hspace{2cm}},
+$$
+and choose the decision:
+
+A. Reject $H_0$ \
+B. Fail to reject $H_0$
+
+**(d) [3]**
+
+Which of the following is the 95% confidence interval for $\beta_1$?
+
+A. $(0.8329,\ 2.1671)$ \
+B. $(1.1838,\ 1.8162)$ \
+C. $(-0.6671,\ 0.6671)$ \
+D. $(0,\ 3.0000)$
+
+### Ans:
+
+a.) $\hat{\boldsymbol{\beta}}$: B; $\;\mathrm{SSE}/\sigma^2$: C
+
+Since $\mathbf{Y}$ is normally distributed, $\hat{\boldsymbol{\beta}} = (\mathbf{X}^\top\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{Y}$ is a linear combination of normal random variables, so it is also normally distributed:
+$$
+\hat{\boldsymbol{\beta}} \sim N_3\!\left(\boldsymbol{\beta},\,\sigma^2(\mathbf{X}^\top\mathbf{X})^{-1}\right)
+$$
+For the sum of squared errors, $\mathrm{SSE}/\sigma^2 = \boldsymbol{\varepsilon}^\top\mathbf{M}\boldsymbol{\varepsilon}/\sigma^2$ follows a chi-square distribution with degrees of freedom equal to $\text{rank}(\mathbf{M}) = n - p = 20 - 3 = 17$:
+$$
+\frac{\mathrm{SSE}}{\sigma^2} \sim \chi^2_{17}
+$$
+
+b.) $\hat\sigma^2 = 2.000$
+
+Computing the estimate for $\sigma^2$,
+$$
+\hat{\sigma}^2 = \frac{\mathrm{SSE}}{n-p} = \frac{34}{20-3} = \frac{34}{17} = 2.000
+$$
+
+c.) $\mathrm{SE}(\hat\beta_1) = 0.316$, $\;t = 4.743$, $\;$decision: A
+
+The parameter $\beta_1$ is the second element of $\boldsymbol{\beta}$, so its variance uses the $(2,2)$ diagonal entry of $(\mathbf{X}^\top\mathbf{X})^{-1}$:
+$$
+\mathrm{SE}(\hat{\beta}_1) = \sqrt{\hat\sigma^2\left[(\mathbf{X}^\top\mathbf{X})^{-1}\right]_{22}} = \sqrt{2(0.05)} = \sqrt{0.1} \approx 0.31623
+$$
+Rounding to three decimal places gives $\mathrm{SE}(\hat{\beta}_1) = 0.316$.
+
+Under the null hypothesis $H_0: \beta_1 = 0$, the test statistic is,
+$$
+t = \frac{\hat\beta_1 - 0}{\mathrm{SE}(\hat\beta_1)} = \frac{1.5}{0.31623} \approx 4.74342
+$$
+Rounding to three decimal places gives $t = 4.743$.
+
+Comparing with the critical value, $|t| = 4.743 > t_{0.975, 17} = 2.110$, so we reject $H_0$ (Option A).
+
+d.) A
+
+Using the formula for the 95% confidence interval,
+$$
+\begin{aligned}
+    \hat\beta_1 \pm t_{0.975,17}\,\mathrm{SE}(\hat\beta_1) &= 1.5 \pm 2.110(0.31623) \\
+    &= 1.5 \pm 0.66724 \\
+    &= (0.8328,\ 2.1672)
+\end{aligned}
+$$
+This matches option A: $(0.8329, 2.1671)$ (the minor difference in the last digit is just rounding). Option B forgets the $t$ multiplier, and C is centered around 0 instead of $\hat\beta_1$. Since 0 is not in the confidence interval, this also agrees with rejecting $H_0$ in part (c).
+
+$$
+\square
+$$

@@ -1,0 +1,509 @@
+\documentclass[12pt,letterpaper, onecolumn]{exam}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[shortlabels]{enumitem}
+\usepackage{mathtools}
+\usepackage{longtable}
+\usepackage{tikz}
+\newcommand{\minsup}{\mathrm{minsup}}
+\newcommand{\minconf}{\mathrm{minconf}}
+\newcommand{\mincount}{\mathrm{mincount}}
+
+\usepackage[lmargin=71pt, tmargin=1.2in]{geometry} %For centering solution box
+\lhead{CSC 6740 - Homework 3\\}
+\rhead{Tommy Stell\\}
+% \chead{\hline} % Un-comment to draw line below header
+\thispagestyle{empty}   %For removing header/footer from page 1
+
+\begin{document}
+
+\begingroup
+    \centering
+    \LARGE Data Mining\\
+    \LARGE Homework 3\\[0.5em]
+    \large \today\\[0.5em]
+    \large Tommy Stell\par
+
+\endgroup
+\rule{\textwidth}{0.4pt}
+\pointsdroppedatright   %Self-explanatory
+\printanswers
+\renewcommand{\solutiontitle}{\noindent\textbf{Ans:}\enspace}   %Replace "Ans:" with starting keyword in solution box
+
+\begin{questions}
+
+    \question Question 1
+
+    The Apriori algorithm makes use of prior knowledge of subset support properties.
+    \begin{enumerate}[a.)]
+        \item Explain that the (relative) support of any nonempty subset $s'$ of frequent itemset $s$ must be at least as great as the (relative) support of $s$.
+        \item Given frequent itemset $L$ and subset $s$ of $L$, prove that the confidence of the rule ``$s' \Rightarrow (L - s')$'' cannot be more than the confidence of ``$s \Rightarrow (L - s)$'', where $s'$ is a subset of $s$.
+    \end{enumerate}
+
+    \begin{solution}
+
+        \begin{enumerate}[a.)]
+            \item For a database $D$ of $N$ transactions, the relative support of an itemset $X$ is the fraction of transactions that contain it,
+            \begin{equation*}
+                \text{sup}(X) = \frac{|\{T\in D : X\subseteq T\}|}{N}
+            \end{equation*}
+            Let $s'\subseteq s$ with $s'\neq\emptyset$. Any transaction $T$ that contains $s$ also contains $s'$ since $s'\subseteq s\subseteq T$. So the set of transactions containing $s$ sits inside the set of transactions containing $s'$,
+            \begin{equation*}
+                \{T\in D : s\subseteq T\} \subseteq \{T\in D : s'\subseteq T\} \implies \text{sup}(s') \geq \text{sup}(s)
+            \end{equation*}
+            So if $s$ is frequent ($\text{sup}(s)\geq \minsup$), then every nonempty subset of $s$ is frequent as well. This is the anti-monotone (Apriori) property and is the reason Apriori can throw away any candidate $k$-itemset that has an infrequent $(k-1)$-subset without ever counting it.
+            \item For any rule $A\Rightarrow (L-A)$ with $A\subseteq L$, the rule covers $A\cup(L-A)=L$, so the confidence is
+            \begin{equation*}
+                \text{conf}(A\Rightarrow L-A) = \frac{\text{sup}(L)}{\text{sup}(A)}
+            \end{equation*}
+            Taking $s'\subseteq s\subseteq L$ with $s'$ nonempty,
+            \begin{align*}
+                \text{conf}(s'\Rightarrow L-s') &= \frac{\text{sup}(L)}{\text{sup}(s')} \\
+                \text{conf}(s\Rightarrow L-s) &= \frac{\text{sup}(L)}{\text{sup}(s)}
+            \end{align*}
+            Both have the same numerator. From part a.), $s'\subseteq s$ gives $\text{sup}(s')\geq\text{sup}(s)$, and $\text{sup}(s)\geq\text{sup}(L)>0$ since $L$ is frequent (so neither denominator is zero). A larger denominator gives a smaller ratio,
+            \begin{equation*}
+                \text{conf}(s'\Rightarrow L-s') = \frac{\text{sup}(L)}{\text{sup}(s')} \leq \frac{\text{sup}(L)}{\text{sup}(s)} = \text{conf}(s\Rightarrow L-s)
+            \end{equation*}
+            In other words, shrinking the left-hand side of a rule can only lower its confidence. This is what lets rule generation stop moving items to the right-hand side once a rule fails $\minconf$.
+        \end{enumerate}
+
+        $\square$
+    \end{solution}
+
+    \newpage
+    \question Question 2
+
+    A database has 5 transactions. Let $\minsup = 60\%$ and $\minconf = 80\%$. To find the frequent patterns (including 1-itemsets),
+    \begin{equation*}
+        \begin{array}{|c|c|}
+            \hline \text{TID} & \text{items bought} \\ \hline
+            T100 & \{M, O, N, K, E, Y\} \\
+            T200 & \{D, O, N, K, E, Y\} \\
+            T300 & \{M, A, K, E\} \\
+            T400 & \{M, U, C, K, Y\} \\
+            T500 & \{C, O, K, I, E\} \\ \hline
+        \end{array}
+    \end{equation*}
+    \begin{enumerate}[a.)]
+        \item Find all frequent itemsets using Apriori (step by step, without existing packages).
+        \item Find all frequent itemsets using FP-growth (step by step, without existing packages).
+        \item Explain why FP-Growth is bounded by exactly two database scans regardless of the length of the longest frequent pattern, while Apriori requires $k$ database scans to discover a frequent $k$-itemset, excluding checking whether a $k+1$ itemset is frequent.
+        \item List all of the strong association rules matching
+        \begin{equation*}
+            \forall X\in\text{transaction},\ \text{buys}(X,\text{item}_1)\wedge\text{buys}(X,\text{item}_2)\Rightarrow\text{buys}(X,\text{item}_3)
+        \end{equation*}
+    \end{enumerate}
+
+    \begin{solution}
+
+        With $N=5$ transactions, $\minsup=60\%$ means an itemset needs a count of at least
+        \begin{equation*}
+            \mincount = 0.60\times 5 = 3
+        \end{equation*}
+
+        \begin{enumerate}[a.)]
+            \item
+
+            Scan 1. Counting every item gives $C_1$, and keeping the ones with count $\geq 3$ gives $L_1$,
+            \begin{equation*}
+                \begin{array}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+                    \hline \text{Item} & A & C & D & E & I & K & M & N & O & U & Y \\ \hline
+                    \text{Count} & 1 & 2 & 1 & 4 & 1 & 5 & 3 & 2 & 3 & 1 & 3 \\ \hline
+                \end{array}
+            \end{equation*}
+            \begin{equation*}
+                L_1 = \{E:4,\ K:5,\ M:3,\ O:3,\ Y:3\}
+            \end{equation*}
+
+            Scan 2. Joining $L_1$ with itself gives all $\binom{5}{2}=10$ pairs. Every 1-subset is frequent, so nothing is pruned before counting,
+            \begin{equation*}
+                \begin{array}{|c|c|c|}
+                    \hline C_2 & \text{Count} & \text{In } L_2? \\ \hline
+                    \{E,K\} & 4 & \checkmark \\
+                    \{E,M\} & 2 & \\
+                    \{E,O\} & 3 & \checkmark \\
+                    \{E,Y\} & 2 & \\
+                    \{K,M\} & 3 & \checkmark \\
+                    \{K,O\} & 3 & \checkmark \\
+                    \{K,Y\} & 3 & \checkmark \\
+                    \{M,O\} & 1 & \\
+                    \{M,Y\} & 2 & \\
+                    \{O,Y\} & 2 & \\ \hline
+                \end{array}
+            \end{equation*}
+            \begin{equation*}
+                L_2 = \{\{E,K\}:4,\ \{E,O\}:3,\ \{K,M\}:3,\ \{K,O\}:3,\ \{K,Y\}:3\}
+            \end{equation*}
+
+            Scan 3. Joining pairs in $L_2$ that share their first item (in sorted order) gives 4 candidates. The prune step then removes any candidate with a 2-subset not in $L_2$,
+            \begin{equation*}
+                \begin{array}{|c|c|c|}
+                    \hline \text{Join} & \text{Candidate} & \text{Prune step} \\ \hline
+                    \{E,K\}\bowtie\{E,O\} & \{E,K,O\} & \text{kept (}\{E,K\},\{E,O\},\{K,O\}\in L_2) \\
+                    \{K,M\}\bowtie\{K,O\} & \{K,M,O\} & \text{pruned, } \{M,O\}\notin L_2 \\
+                    \{K,M\}\bowtie\{K,Y\} & \{K,M,Y\} & \text{pruned, } \{M,Y\}\notin L_2 \\
+                    \{K,O\}\bowtie\{K,Y\} & \{K,O,Y\} & \text{pruned, } \{O,Y\}\notin L_2 \\ \hline
+                \end{array}
+            \end{equation*}
+            Only $\{E,K,O\}$ needs to be counted, and it appears in T100, T200, and T500,
+            \begin{equation*}
+                L_3 = \{\{E,K,O\}:3\}
+            \end{equation*}
+
+             $L_3$ has a single itemset, so there is nothing to join and $C_4=\emptyset$. All together, the frequent itemsets are,
+             
+            \begin{equation*}
+                \begin{array}{|c|c|c|}
+                    \hline \text{Itemset} & \text{Count} & \text{Support} \\ \hline
+                    \{E\} & 4 & 80\% \\
+                    \{K\} & 5 & 100\% \\
+                    \{M\} & 3 & 60\% \\
+                    \{O\} & 3 & 60\% \\
+                    \{Y\} & 3 & 60\% \\
+                    \{E,K\} & 4 & 80\% \\
+                    \{E,O\} & 3 & 60\% \\
+                    \{K,M\} & 3 & 60\% \\
+                    \{K,O\} & 3 & 60\% \\
+                    \{K,Y\} & 3 & 60\% \\
+                    \{E,K,O\} & 3 & 60\% \\ \hline
+                \end{array}
+            \end{equation*}
+
+            \item FP-growth
+
+            Scan 1. The item counts are the same as $C_1$ above. Keeping the frequent items and sorting by descending count (ties broken alphabetically) gives the header table / F-list,
+            \begin{equation*}
+                \begin{array}{|c|c|c|c|c|c|}
+                    \hline \text{Item} & K & E & M & O & Y \\ \hline
+                    \text{Count} & 5 & 4 & 3 & 3 & 3 \\ \hline
+                \end{array}
+                \qquad \text{F-list: } K \succ E \succ M \succ O \succ Y
+            \end{equation*}
+
+            Scan 2. Each transaction is filtered to its frequent items and put in F-list order,
+            \begin{equation*}
+                \begin{array}{|c|c|}
+                    \hline \text{TID} & \text{Ordered frequent items} \\ \hline
+                    T100 & K, E, M, O, Y \\
+                    T200 & K, E, O, Y \\
+                    T300 & K, E, M \\
+                    T400 & K, M, Y \\
+                    T500 & K, E, O \\ \hline
+                \end{array}
+            \end{equation*}
+            Inserting these one at a time from the null root (sharing prefixes and incrementing counts) gives the FP-tree,
+            \begin{center}
+                \begin{tikzpicture}[level distance=1.1cm,
+                    level 1/.style={sibling distance=4cm},
+                    level 2/.style={sibling distance=3cm},
+                    level 3/.style={sibling distance=2cm}]
+                    \node {null}
+                        child {node {$K:5$}
+                            child {node {$E:4$}
+                                child {node {$M:2$}
+                                    child {node {$O:1$}
+                                        child {node {$Y:1$}}}}
+                                child {node {$O:2$}
+                                    child {node {$Y:1$}}}}
+                            child {node {$M:1$}
+                                child {node {$Y:1$}}}};
+                \end{tikzpicture}
+                \captionof{figure}{FP-tree for the Question 2 transactions.}
+                \label{fig:Q2_fptree}
+            \end{center}
+
+            Mining. Working up the header table from the least frequent item, I follow each item's node links, read off the prefix paths above it (its conditional pattern base, with the count of that item's node), and build a conditional FP-tree from the items that still reach a count of 3,
+            {\small\renewcommand{\arraystretch}{1.4}
+            \begin{equation*}
+                \begin{array}{|c|c|c|c|}
+                    \hline \text{Item} & \begin{array}{c}\text{Conditional} \\ \text{pattern base}\end{array} & \begin{array}{c}\text{Conditional} \\ \text{FP-tree}\end{array} & \text{Frequent patterns} \\ \hline
+                    Y & \begin{array}{c}\{K,M\}:1,\ \{K,E,O\}:1, \\ \{K,E,M,O\}:1\end{array} & \langle K:3\rangle & \{K,Y\}:3 \\
+                    O & \{K,E\}:2,\ \{K,E,M\}:1 & \langle K:3, E:3\rangle & \begin{array}{c}\{K,O\}:3,\ \{E,O\}:3, \\ \{K,E,O\}:3\end{array} \\
+                    M & \{K\}:1,\ \{K,E\}:2 & \langle K:3\rangle & \{K,M\}:3 \\
+                    E & \{K\}:4 & \langle K:4\rangle & \{K,E\}:4 \\
+                    K & \emptyset & \emptyset & - \\ \hline
+                \end{array}
+            \end{equation*}
+            }
+            For $Y$, only $K$ reaches 3 ($E$, $M$, and $O$ each only reach 2). For $O$, the $M$ in $\{K,E,M\}:1$ only has a count of 1, so it is dropped and the conditional tree is the single path $K:3\rightarrow E:3$, which gives every combination of $\{K,E\}$ with $O$. Adding the frequent 1-itemsets from the header table, FP-growth gives the same 11 frequent itemsets (with the same counts) as Apriori in part a.).
+
+            \item FP-growth only touches the database twice. The first scan counts every item to get the frequent 1-itemsets and the F-list order. The second scan reads each transaction once more, keeps only its frequent items in F-list order, and inserts it into the FP-tree. After that, the FP-tree holds everything needed to count any frequent pattern (it is a compressed, lossless copy as far as frequent items go), so all of the mining (conditional pattern bases, conditional FP-trees, and the recursion on longer suffixes) is done by walking the node links of the tree in memory. A frequent pattern of length 2 or of length 20 costs the same two scans.
+
+            Apriori is a level-wise generate-and-test method. The candidates $C_k$ are built by joining $L_{k-1}$, so they cannot exist until the pass that found $L_{k-1}$ is done, and the only way to get the support of a candidate is to count it against the transactions. So scan 1 gives $L_1$, scan 2 gives $L_2$, \dots, and scan $k$ gives $L_k$, meaning a frequent $k$-itemset takes $k$ scans to discover. One more scan to count $C_{k+1}$ (and find nothing frequent) is the ``checking whether a $k+1$ itemset is frequent'' step that is excluded. In part a.), $L_3$ only had one itemset, so $C_4$ was empty after the join and that extra scan was not even needed.
+
+            \item Rules of this form need a frequent 3-itemset, and the only one is $\{E,K,O\}$ with a count of 3 ($s=60\%$). Splitting it into two items on the left and one on the right,
+            \begin{align*}
+                \{K,O\}\Rightarrow\{E\}:&\quad s = \tfrac{3}{5} = 60\%, \quad c = \frac{\text{count}(\{E,K,O\})}{\text{count}(\{K,O\})} = \frac{3}{3} = 100\% \\
+                \{E,O\}\Rightarrow\{K\}:&\quad s = \tfrac{3}{5} = 60\%, \quad c = \frac{\text{count}(\{E,K,O\})}{\text{count}(\{E,O\})} = \frac{3}{3} = 100\% \\
+                \{E,K\}\Rightarrow\{O\}:&\quad s = \tfrac{3}{5} = 60\%, \quad c = \frac{\text{count}(\{E,K,O\})}{\text{count}(\{E,K\})} = \frac{3}{4} = 75\%
+            \end{align*}
+            The third rule fails $\minconf = 80\%$, so the strong rules are,
+            \begin{align*}
+                \text{buys}(X,K)\wedge\text{buys}(X,O) &\Rightarrow \text{buys}(X,E) \quad [s=60\%,\ c=100\%] \\
+                \text{buys}(X,E)\wedge\text{buys}(X,O) &\Rightarrow \text{buys}(X,K) \quad [s=60\%,\ c=100\%]
+            \end{align*}
+        \end{enumerate}
+
+        $\square$
+    \end{solution}
+
+    \newpage
+    \question Question 3
+
+    Give a short example to show that items in a strong association rule (Ex: $\minsup = 10\%$, $\minconf = 50\%$) may actually be negatively correlated. To detect and remove negatively associated rules, what measure(s) can you use?
+
+    \begin{solution}
+
+        Take a bakery with $N=5{,}000$ transactions where $3{,}000$ include a cake, $4{,}000$ include a pie, and $2{,}200$ include both. The contingency table is,
+        \begin{equation*}
+            \begin{array}{|c|c|c|c|}
+                \hline & \text{pie} & \neg\text{pie} & \text{Total} \\ \hline
+                \text{cake} & 2200 & 800 & 3000 \\
+                \neg\text{cake} & 1800 & 200 & 2000 \\ \hline
+                \text{Total} & 4000 & 1000 & 5000 \\ \hline
+            \end{array}
+        \end{equation*}
+        For the rule $\text{cake}\Rightarrow\text{pie}$,
+        \begin{align*}
+            s &= \frac{2200}{5000} = 44\% \geq 10\% \\
+            c &= \frac{2200}{3000} \approx 73.3\% \geq 50\%
+        \end{align*}
+        so it is a strong rule. But a random customer buys a pie $80\%$ of the time, and a customer who buys a cake only buys a pie $73.3\%$ of the time, so buying a cake actually makes a pie less likely (one dessert is usually enough). The lift shows this,
+        \begin{equation*}
+            \text{lift} = \frac{P(\text{cake}\cap\text{pie})}{P(\text{cake})P(\text{pie})} = \frac{0.44}{0.60\times0.80} = \frac{0.44}{0.48} \approx 0.917 < 1
+        \end{equation*}
+
+        To catch and remove these, I would use,
+        \begin{itemize}
+            \item Lift: $\text{lift}<1$ means negative correlation, $=1$ means independence, and $>1$ means positive correlation. Only keep rules with lift $>1$.
+            \item $\chi^2$: compare the observed counts against the counts expected under independence, $E_{ij}=R_iC_j/N$. Here the expected cake-and-pie count is $3000\times4000/5000=2400$ but only $2200$ are observed, and
+            \begin{align*}
+                \chi^2 &= \frac{(2200-2400)^2}{2400}+\frac{(800-600)^2}{600}+\frac{(1800-1600)^2}{1600}+\frac{(200-400)^2}{400} \\
+                &\approx 16.7 + 66.7 + 25.0 + 100.0 \approx 208.3
+            \end{align*}
+            which is far past $\chi^2_{0.05,1}=3.841$, so the dependence is real, and since the observed count is below the expected one, it is negative.
+        \end{itemize}
+        If the data has lots of null transactions (baskets with neither item), lift and $\chi^2$ get distorted since both depend on the null count. The null-invariant measures (all-confidence, max-confidence, Kulczynski, and cosine) fix that, but they do not have an independence point like lift $=1$, so they cannot flag a negative correlation on their own. For this example,
+        \begin{align*}
+            \text{Kulc}(\text{cake},\text{pie}) &= \frac{1}{2}\left(\frac{2200}{3000}+\frac{2200}{4000}\right) \approx 0.642 \\
+            \cos(\text{cake},\text{pie}) &= \frac{2200}{\sqrt{3000\times4000}} \approx 0.635
+        \end{align*}
+        Both sit above $0.5$ and would call this rule slightly positive, even though lift and $\chi^2$ show it is negative. So I would use lift and $\chi^2$ to detect and remove the negatively correlated rules, and then use Kulczynski together with the imbalance ratio,
+        \begin{equation*}
+            \text{IR}(\text{cake},\text{pie}) = \frac{|3000-4000|}{3000+4000-2200} = \frac{1000}{4800} \approx 0.208
+        \end{equation*}
+        to judge how strong the remaining rules are when null transactions dominate.
+
+        $\square$
+    \end{solution}
+
+    \newpage
+    \question Question 4
+
+    Using retail\_200\_expanded.csv, compare Apriori with FP-Growth for frequent pattern mining with $\minsup = 25\%$ and $\minconf = 80\%$.
+
+    Frequent Itemsets extraction:
+    \begin{enumerate}[a.)]
+        \item Execute frequent itemset extraction via the Apriori module at a strict $25\%$ support threshold.
+        \item Execute frequent itemset extraction via the FP-Growth module at the same $25\%$ support threshold.
+        \item Programmatically assert that both approaches return identical frequent itemset groupings. Print a table listing all discovered frequent itemsets of length $\geq 2$ alongside their absolute transaction frequencies.
+    \end{enumerate}
+    Rule Resolution Engine:
+    \begin{enumerate}[a.)]
+        \item Generate all non-empty directional association rules matching a confidence metric of $\geq 80\%$. For each qualifying rule, compute and display: Support, Confidence, and Lift. Sort your output table in descending order of Lift. Are they all meaningful rules based on Lift?
+    \end{enumerate}
+
+    \begin{solution}
+
+        Each transaction is split into its list of items (keeping multi-word items like ``Whole Milk'' together) and written as a 0/1 table with one row per transaction and one column per item. The data has $N=200$ transactions and 14 distinct items, so a $25\%$ support threshold means an itemset needs to show up in at least $0.25\times200=50$ transactions.
+
+        Frequent Itemsets extraction
+        \begin{enumerate}[a.)]
+            \item Apriori with a $25\%$ support threshold returns 47 frequent itemsets.
+            \item FP-growth with the same $25\%$ support threshold returns the same 47 frequent itemsets.
+            \item Matching each itemset to its count in both results (so the order they are listed in does not matter), the two sets of itemsets and counts are identical. As an extra check, my own Apriori and FP-growth from Question 2 also give the same 47 itemsets on this data. The 8 frequent 1-itemsets are Bread (150), Whole Milk (146), Eggs (140), Yogurt (113), Chips (80), Soda (80), Banana (60), and Coffee (60). The 39 frequent itemsets of length $\geq2$ are,
+        \end{enumerate}
+
+        {\small
+        \begin{longtable}{|c|l|c|c|c|}
+            \hline \# & Itemset & Length & Frequency & Support \\ \hline
+            \endhead
+            \hline
+            \endfoot
+            1 & \{Bread, Eggs\} & 2 & 120 & 60.0\% \\
+            2 & \{Bread, Whole Milk\} & 2 & 103 & 51.5\% \\
+            3 & \{Whole Milk, Yogurt\} & 2 & 94 & 47.0\% \\
+            4 & \{Eggs, Whole Milk\} & 2 & 86 & 43.0\% \\
+            5 & \{Chips, Soda\} & 2 & 80 & 40.0\% \\
+            6 & \{Chips, Yogurt\} & 2 & 80 & 40.0\% \\
+            7 & \{Soda, Yogurt\} & 2 & 80 & 40.0\% \\
+            8 & \{Bread, Yogurt\} & 2 & 72 & 36.0\% \\
+            9 & \{Eggs, Yogurt\} & 2 & 71 & 35.5\% \\
+            10 & \{Chips, Whole Milk\} & 2 & 67 & 33.5\% \\
+            11 & \{Soda, Whole Milk\} & 2 & 67 & 33.5\% \\
+            12 & \{Chips, Eggs\} & 2 & 60 & 30.0\% \\
+            13 & \{Eggs, Soda\} & 2 & 60 & 30.0\% \\
+            14 & \{Bread, Chips\} & 2 & 50 & 25.0\% \\
+            15 & \{Bread, Coffee\} & 2 & 50 & 25.0\% \\
+            16 & \{Bread, Soda\} & 2 & 50 & 25.0\% \\
+            17 & \{Chips, Soda, Yogurt\} & 3 & 80 & 40.0\% \\
+            18 & \{Bread, Eggs, Whole Milk\} & 3 & 73 & 36.5\% \\
+            19 & \{Chips, Soda, Whole Milk\} & 3 & 67 & 33.5\% \\
+            20 & \{Chips, Whole Milk, Yogurt\} & 3 & 67 & 33.5\% \\
+            21 & \{Soda, Whole Milk, Yogurt\} & 3 & 67 & 33.5\% \\
+            22 & \{Bread, Eggs, Yogurt\} & 3 & 60 & 30.0\% \\
+            23 & \{Chips, Eggs, Soda\} & 3 & 60 & 30.0\% \\
+            24 & \{Chips, Eggs, Yogurt\} & 3 & 60 & 30.0\% \\
+            25 & \{Eggs, Soda, Yogurt\} & 3 & 60 & 30.0\% \\
+            26 & \{Bread, Whole Milk, Yogurt\} & 3 & 54 & 27.0\% \\
+            27 & \{Eggs, Whole Milk, Yogurt\} & 3 & 52 & 26.0\% \\
+            28 & \{Bread, Chips, Eggs\} & 3 & 50 & 25.0\% \\
+            29 & \{Bread, Chips, Soda\} & 3 & 50 & 25.0\% \\
+            30 & \{Bread, Chips, Yogurt\} & 3 & 50 & 25.0\% \\
+            31 & \{Bread, Eggs, Soda\} & 3 & 50 & 25.0\% \\
+            32 & \{Bread, Soda, Yogurt\} & 3 & 50 & 25.0\% \\
+            33 & \{Chips, Soda, Whole Milk, Yogurt\} & 4 & 67 & 33.5\% \\
+            34 & \{Chips, Eggs, Soda, Yogurt\} & 4 & 60 & 30.0\% \\
+            35 & \{Bread, Chips, Eggs, Soda\} & 4 & 50 & 25.0\% \\
+            36 & \{Bread, Chips, Eggs, Yogurt\} & 4 & 50 & 25.0\% \\
+            37 & \{Bread, Chips, Soda, Yogurt\} & 4 & 50 & 25.0\% \\
+            38 & \{Bread, Eggs, Soda, Yogurt\} & 4 & 50 & 25.0\% \\
+            39 & \{Bread, Chips, Eggs, Soda, Yogurt\} & 5 & 50 & 25.0\% \\
+        \end{longtable}
+        }
+
+        On ``strict'': I read $25\%$ as $\text{support}\geq25\%$ (the usual definition). This matters for this dataset because 13 itemsets have a count of exactly 50. If ``strict'' means $>25\%$, only 26 of the 39 itemsets above (and 51 of the 103 rules below) would remain.
+
+        Rule Resolution Engine
+        \begin{enumerate}[a.)]
+            \item Keeping every rule $A\Rightarrow L-A$ (from a frequent itemset $L$) with confidence $\geq80\%$ gives 103 rules. I also checked these using whole-number counts, keeping a rule when $5\,\text{count}(L)\geq4\,\text{count}(A)$, since $\{\text{Bread}\}\Rightarrow\{\text{Eggs}\}$ sits exactly on the line at $120/150=0.800$ and a rounding error could have dropped it. Both give the same 103 rules and lifts. Here,
+            \begin{equation*}
+                \text{lift}(A\Rightarrow B) = \frac{\text{conf}(A\Rightarrow B)}{\text{sup}(B)}
+            \end{equation*}
+            and the table is sorted by lift (ties broken by confidence, then support, then alphabetically by rule). Rules can share the exact same lift, e.g. $\{\text{Bread}\}\Rightarrow\{\text{Eggs}\}$ and $\{\text{Eggs}\}\Rightarrow\{\text{Bread}\}$ both have $\tfrac{120\cdot200}{150\cdot140}=\tfrac{8}{7}$,
+        \end{enumerate}
+
+        {\footnotesize
+        \begin{longtable}{|c|l|c|c|c|c|}
+            \hline \# & Rule & Support & Confidence & sup(B) & Lift \\ \hline
+            \endhead
+            \hline
+            \endfoot
+            1 & \{Bread, Chips, Yogurt\} $\Rightarrow$ \{Eggs, Soda\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            2 & \{Bread, Chips\} $\Rightarrow$ \{Eggs, Soda, Yogurt\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            3 & \{Bread, Chips\} $\Rightarrow$ \{Eggs, Soda\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            4 & \{Bread, Soda, Yogurt\} $\Rightarrow$ \{Chips, Eggs\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            5 & \{Bread, Soda\} $\Rightarrow$ \{Chips, Eggs, Yogurt\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            6 & \{Bread, Soda\} $\Rightarrow$ \{Chips, Eggs\} & 0.250 & 1.000 & 0.300 & 3.333 \\
+            7 & \{Chips, Eggs, Yogurt\} $\Rightarrow$ \{Bread, Soda\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            8 & \{Chips, Eggs\} $\Rightarrow$ \{Bread, Soda, Yogurt\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            9 & \{Chips, Eggs\} $\Rightarrow$ \{Bread, Soda\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            10 & \{Eggs, Soda, Yogurt\} $\Rightarrow$ \{Bread, Chips\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            11 & \{Eggs, Soda\} $\Rightarrow$ \{Bread, Chips, Yogurt\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            12 & \{Eggs, Soda\} $\Rightarrow$ \{Bread, Chips\} & 0.250 & 0.833 & 0.250 & 3.333 \\
+            13 & \{Bread, Chips, Soda\} $\Rightarrow$ \{Eggs, Yogurt\} & 0.250 & 1.000 & 0.355 & 2.817 \\
+            14 & \{Bread, Chips\} $\Rightarrow$ \{Eggs, Yogurt\} & 0.250 & 1.000 & 0.355 & 2.817 \\
+            15 & \{Bread, Soda\} $\Rightarrow$ \{Eggs, Yogurt\} & 0.250 & 1.000 & 0.355 & 2.817 \\
+            16 & \{Chips, Yogurt\} $\Rightarrow$ \{Soda\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            17 & \{Chips\} $\Rightarrow$ \{Soda, Yogurt\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            18 & \{Chips\} $\Rightarrow$ \{Soda\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            19 & \{Soda, Yogurt\} $\Rightarrow$ \{Chips\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            20 & \{Soda\} $\Rightarrow$ \{Chips, Yogurt\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            21 & \{Soda\} $\Rightarrow$ \{Chips\} & 0.400 & 1.000 & 0.400 & 2.500 \\
+            22 & \{Chips, Whole Milk, Yogurt\} $\Rightarrow$ \{Soda\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            23 & \{Chips, Whole Milk\} $\Rightarrow$ \{Soda, Yogurt\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            24 & \{Chips, Whole Milk\} $\Rightarrow$ \{Soda\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            25 & \{Soda, Whole Milk, Yogurt\} $\Rightarrow$ \{Chips\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            26 & \{Soda, Whole Milk\} $\Rightarrow$ \{Chips, Yogurt\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            27 & \{Soda, Whole Milk\} $\Rightarrow$ \{Chips\} & 0.335 & 1.000 & 0.400 & 2.500 \\
+            28 & \{Chips, Eggs, Yogurt\} $\Rightarrow$ \{Soda\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            29 & \{Chips, Eggs\} $\Rightarrow$ \{Soda, Yogurt\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            30 & \{Chips, Eggs\} $\Rightarrow$ \{Soda\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            31 & \{Eggs, Soda, Yogurt\} $\Rightarrow$ \{Chips\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            32 & \{Eggs, Soda\} $\Rightarrow$ \{Chips, Yogurt\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            33 & \{Eggs, Soda\} $\Rightarrow$ \{Chips\} & 0.300 & 1.000 & 0.400 & 2.500 \\
+            34 & \{Bread, Chips, Eggs, Yogurt\} $\Rightarrow$ \{Soda\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            35 & \{Bread, Chips, Eggs\} $\Rightarrow$ \{Soda, Yogurt\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            36 & \{Bread, Chips, Eggs\} $\Rightarrow$ \{Soda\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            37 & \{Bread, Chips, Yogurt\} $\Rightarrow$ \{Soda\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            38 & \{Bread, Chips\} $\Rightarrow$ \{Soda, Yogurt\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            39 & \{Bread, Chips\} $\Rightarrow$ \{Soda\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            40 & \{Bread, Eggs, Soda, Yogurt\} $\Rightarrow$ \{Chips\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            41 & \{Bread, Eggs, Soda\} $\Rightarrow$ \{Chips, Yogurt\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            42 & \{Bread, Eggs, Soda\} $\Rightarrow$ \{Chips\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            43 & \{Bread, Soda, Yogurt\} $\Rightarrow$ \{Chips\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            44 & \{Bread, Soda\} $\Rightarrow$ \{Chips, Yogurt\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            45 & \{Bread, Soda\} $\Rightarrow$ \{Chips\} & 0.250 & 1.000 & 0.400 & 2.500 \\
+            46 & \{Chips, Yogurt\} $\Rightarrow$ \{Soda, Whole Milk\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            47 & \{Chips\} $\Rightarrow$ \{Soda, Whole Milk, Yogurt\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            48 & \{Chips\} $\Rightarrow$ \{Soda, Whole Milk\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            49 & \{Soda, Yogurt\} $\Rightarrow$ \{Chips, Whole Milk\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            50 & \{Soda\} $\Rightarrow$ \{Chips, Whole Milk, Yogurt\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            51 & \{Soda\} $\Rightarrow$ \{Chips, Whole Milk\} & 0.335 & 0.838 & 0.335 & 2.500 \\
+            52 & \{Chips, Eggs, Soda\} $\Rightarrow$ \{Bread, Yogurt\} & 0.250 & 0.833 & 0.360 & 2.315 \\
+            53 & \{Chips, Eggs\} $\Rightarrow$ \{Bread, Yogurt\} & 0.250 & 0.833 & 0.360 & 2.315 \\
+            54 & \{Eggs, Soda\} $\Rightarrow$ \{Bread, Yogurt\} & 0.250 & 0.833 & 0.360 & 2.315 \\
+            55 & \{Eggs, Yogurt\} $\Rightarrow$ \{Chips, Soda\} & 0.300 & 0.845 & 0.400 & 2.113 \\
+            56 & \{Eggs, Yogurt\} $\Rightarrow$ \{Chips\} & 0.300 & 0.845 & 0.400 & 2.113 \\
+            57 & \{Eggs, Yogurt\} $\Rightarrow$ \{Soda\} & 0.300 & 0.845 & 0.400 & 2.113 \\
+            58 & \{Bread, Eggs, Yogurt\} $\Rightarrow$ \{Chips, Soda\} & 0.250 & 0.833 & 0.400 & 2.083 \\
+            59 & \{Bread, Eggs, Yogurt\} $\Rightarrow$ \{Chips\} & 0.250 & 0.833 & 0.400 & 2.083 \\
+            60 & \{Bread, Eggs, Yogurt\} $\Rightarrow$ \{Soda\} & 0.250 & 0.833 & 0.400 & 2.083 \\
+            61 & \{Chips, Soda\} $\Rightarrow$ \{Whole Milk, Yogurt\} & 0.335 & 0.838 & 0.470 & 1.782 \\
+            62 & \{Chips\} $\Rightarrow$ \{Whole Milk, Yogurt\} & 0.335 & 0.838 & 0.470 & 1.782 \\
+            63 & \{Soda\} $\Rightarrow$ \{Whole Milk, Yogurt\} & 0.335 & 0.838 & 0.470 & 1.782 \\
+            64 & \{Chips, Soda\} $\Rightarrow$ \{Yogurt\} & 0.400 & 1.000 & 0.565 & 1.770 \\
+            65 & \{Chips\} $\Rightarrow$ \{Yogurt\} & 0.400 & 1.000 & 0.565 & 1.770 \\
+            66 & \{Soda\} $\Rightarrow$ \{Yogurt\} & 0.400 & 1.000 & 0.565 & 1.770 \\
+            67 & \{Chips, Soda, Whole Milk\} $\Rightarrow$ \{Yogurt\} & 0.335 & 1.000 & 0.565 & 1.770 \\
+            68 & \{Chips, Whole Milk\} $\Rightarrow$ \{Yogurt\} & 0.335 & 1.000 & 0.565 & 1.770 \\
+            69 & \{Soda, Whole Milk\} $\Rightarrow$ \{Yogurt\} & 0.335 & 1.000 & 0.565 & 1.770 \\
+            70 & \{Chips, Eggs, Soda\} $\Rightarrow$ \{Yogurt\} & 0.300 & 1.000 & 0.565 & 1.770 \\
+            71 & \{Chips, Eggs\} $\Rightarrow$ \{Yogurt\} & 0.300 & 1.000 & 0.565 & 1.770 \\
+            72 & \{Eggs, Soda\} $\Rightarrow$ \{Yogurt\} & 0.300 & 1.000 & 0.565 & 1.770 \\
+            73 & \{Bread, Chips, Eggs, Soda\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            74 & \{Bread, Chips, Eggs\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            75 & \{Bread, Chips, Soda\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            76 & \{Bread, Chips\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            77 & \{Bread, Eggs, Soda\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            78 & \{Bread, Soda\} $\Rightarrow$ \{Yogurt\} & 0.250 & 1.000 & 0.565 & 1.770 \\
+            79 & \{Bread, Chips, Soda, Yogurt\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            80 & \{Bread, Chips, Soda\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            81 & \{Bread, Chips, Yogurt\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            82 & \{Bread, Chips\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            83 & \{Bread, Soda, Yogurt\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            84 & \{Bread, Soda\} $\Rightarrow$ \{Eggs\} & 0.250 & 1.000 & 0.700 & 1.429 \\
+            85 & \{Bread, Yogurt\} $\Rightarrow$ \{Eggs\} & 0.300 & 0.833 & 0.700 & 1.190 \\
+            86 & \{Chips, Soda, Yogurt\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            87 & \{Chips, Soda\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            88 & \{Chips, Yogurt\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            89 & \{Chips\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            90 & \{Soda, Yogurt\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            91 & \{Soda\} $\Rightarrow$ \{Whole Milk\} & 0.335 & 0.838 & 0.730 & 1.147 \\
+            92 & \{Eggs\} $\Rightarrow$ \{Bread\} & 0.600 & 0.857 & 0.750 & 1.143 \\
+            93 & \{Bread\} $\Rightarrow$ \{Eggs\} & 0.600 & 0.800 & 0.700 & 1.143 \\
+            94 & \{Yogurt\} $\Rightarrow$ \{Whole Milk\} & 0.470 & 0.832 & 0.730 & 1.140 \\
+            95 & \{Eggs, Whole Milk\} $\Rightarrow$ \{Bread\} & 0.365 & 0.849 & 0.750 & 1.132 \\
+            96 & \{Eggs, Yogurt\} $\Rightarrow$ \{Bread\} & 0.300 & 0.845 & 0.750 & 1.127 \\
+            97 & \{Chips, Eggs, Soda, Yogurt\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            98 & \{Chips, Eggs, Soda\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            99 & \{Chips, Eggs, Yogurt\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            100 & \{Chips, Eggs\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            101 & \{Coffee\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            102 & \{Eggs, Soda, Yogurt\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+            103 & \{Eggs, Soda\} $\Rightarrow$ \{Bread\} & 0.250 & 0.833 & 0.750 & 1.111 \\
+        \end{longtable}
+        }
+
+        Are they all meaningful based on lift? All 103 rules have lift $>1$, so none of them are negatively correlated, but they are not all equally meaningful. Since lift is confidence divided by the support of the right-hand side, a high confidence does not mean much when the right-hand side is common anyway. The 19 rules at the bottom of the table (lift between $1.11$ and $1.19$) all predict Bread ($75\%$ of baskets), Eggs ($70\%$), or Whole Milk ($73\%$). For example, $\{\text{Bread}\}\Rightarrow\{\text{Eggs}\}$ has $c=0.800$ against a base rate of $0.700$, and $\{\text{Coffee}\}\Rightarrow\{\text{Bread}\}$ has $c=0.833$ against $0.750$. These pass the $80\%$ confidence cut mostly because those items are popular, and are close to independent (lift $=1$). The rules that actually tell us something are the high-lift ones, mainly the Chips/Soda/Yogurt group (e.g. $\{\text{Soda}\}\Rightarrow\{\text{Chips}\}$ with $c=1.0$ against a base rate of $0.40$, lift $2.5$) and the Bread/Chips/Eggs/Soda/Yogurt group (lift up to $3.33$). Even then, a lot of the rules are redundant. Every lift $3.33$ rule comes from an itemset with a count of exactly 50, and those all cover the same 50 transactions, so they are the same pattern split up different ways rather than separate findings.
+
+        $\square$
+    \end{solution}
+
+\end{questions}
+\end{document}

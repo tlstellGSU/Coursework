@@ -1,0 +1,705 @@
+\documentclass[12pt,letterpaper, onecolumn]{exam}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[shortlabels]{enumitem}
+\usepackage{hyperref}
+
+\usepackage[lmargin=71pt, tmargin=1.2in]{geometry} %For centering solution box
+\lhead{STAT 8561 - Homework 1\\}
+\rhead{Tommy Stell\\}
+% \chead{\hline} % Un-comment to draw line below header
+\thispagestyle{empty}   %For removing header/footer from page 1
+
+\begin{document}
+
+\begingroup  
+    \centering
+    \LARGE Linear Statistical Analysis 1\\
+    \LARGE Homework 1\\[0.5em]
+    \large \today\\[0.5em]
+    \large Tommy Stell\par
+    
+\endgroup
+\rule{\textwidth}{0.4pt}
+\pointsdroppedatright   %Self-explanatory
+\printanswers
+\renewcommand{\solutiontitle}{\noindent\textbf{Ans:}\enspace}   %Replace "Ans:" with starting keyword in solution box
+
+\begin{questions}
+
+    \question[8] Question 1\droppoints
+
+    Consider the simple linear regression model
+    \begin{equation*}
+        Y_i = \beta_0 + \beta_1 x_i + \epsilon_i, \quad i=1,\ldots,5
+    \end{equation*}
+
+    with the following observed data
+    \begin{equation*}
+        \begin{array}{|c|c|c|}
+           \hline i & x_i & y_i \\ \hline
+            1 & 0 & 2 \\ \hline
+            2 & 1 & 4 \\ \hline
+            3 & 2 & 5 \\ \hline
+            4 & 3 & 8 \\ \hline
+            5 & 4 & 9 \\ \hline
+        \end{array}
+    \end{equation*}
+
+    \begin{enumerate}[A.)]
+        \item What is the design matrix?
+        \item What is the dimension/rank of: 
+        \begin{enumerate}[i.)]
+            \item $\textbf{Y}$
+            \item $\textbf{X}$
+            \item $\beta$
+            \item $\text{rank}(\textbf{X})$
+        \end{enumerate}
+        \item What is $\textbf{X}^\intercal\textbf{X}$ and $\textbf{X}^\intercal\textbf{Y}$?
+        \item Assume $\mathbb{E}[\epsilon]=0$ and $\text{Var}(\epsilon)=\sigma^2I_5$. Evaluate the truthfulness of:
+        \begin{enumerate}[i.)]
+            \item $\mathbb{E}[\textbf{Y}]=\textbf{X}\beta$
+            \item $\text{Var}(\textbf{Y})=\sigma^2I_5$
+            \item $\mathbb{E}[\textbf{Y}]=0$
+            \item The five errors all have variance $\sigma^2$
+        \end{enumerate}
+    \end{enumerate}
+    
+    \begin{solution}
+
+    \begin{enumerate}[A.)]
+        \item The design matrix is given by
+        \begin{equation*}
+            \textbf{X} = \left [\begin{array}{cc}
+                1 & 0 \\
+                1 & 1 \\
+                1 & 2 \\
+                1 & 3 \\
+                1 & 4
+            \end{array} \right]
+        \end{equation*}
+        \item \begin{enumerate}[i.)]
+            \item $\textbf{Y}\in\mathbb{R}^{5\times 1}$ with rank $=1$
+            \item $\textbf{X}\in\mathbb{R}^{5\times 2}$ with rank $=2$
+            \item $\beta\in\mathbb{R}^{2\times 1}$ with rank $=1$
+            \item $\text{rank}(\textbf{X})\in\mathbb{R}^1$ and is a scalar
+        \end{enumerate}
+        \item 
+        \begin{equation*}
+            \textbf{X}^\intercal\textbf{X} = \left [\begin{array}{ccccc}
+                1 & 1 &  1 & 1 & 1 \\ 0 & 1 & 2 & 3 & 4
+            \end{array} \right] \left [\begin{array}{cc}
+                1 & 0 \\
+                1 & 1 \\
+                1 & 2 \\
+                1 & 3 \\
+                1 & 4
+            \end{array} \right] = \left [\begin{array}{cc}
+                5 & 10 \\
+                10 & 30 
+            \end{array} \right]
+        \end{equation*}
+        \begin{equation*}
+            \textbf{X}^\intercal\textbf{Y} = \left [\begin{array}{ccccc}
+                1 & 1 &  1 & 1 & 1 \\ 0 & 1 & 2 & 3 & 4
+            \end{array} \right]  \left [\begin{array}{c}
+                2  \\
+                4  \\
+                5  \\
+                8  \\
+                9 
+            \end{array} \right] = \left [\begin{array}{c}
+                28 \\ 74
+            \end{array} \right]
+        \end{equation*}
+        \item \begin{enumerate}[i.)]
+            \item True
+            
+            Since $\textbf{Y}=\textbf{X}\beta + \epsilon$, we can take the expectation of both sides resulting in
+            \begin{align*}
+                \mathbb{E}[\textbf{Y}] & = \mathbb{E}[\textbf{X}\beta + \epsilon] \\
+                \mathbb{E}[\textbf{Y}] & = \mathbb{E}[\textbf{X}\beta] +\mathbb{E}[ \epsilon] \\
+                \mathbb{E}[\textbf{Y}] & = \mathbb{E}[\textbf{X}\beta] + 0 \\
+                \mathbb{E}[\textbf{Y}] & = \textbf{X}\beta \quad \text{since} \quad \mathbb{E}[\textbf{X}\beta] = \textbf{X}\beta \\
+            \end{align*}
+            \item True
+            \begin{align*}
+                \text{Var}(\textbf{Y}) &= \text{Var}(\textbf{X}\beta + \epsilon) \\
+                \text{Var}(\textbf{Y}) &= \text{Var}( \epsilon) \quad \text{since} \quad \text{Var}(\textbf{X}\beta)=0\\
+                \text{Var}(\textbf{Y}) &= \sigma^2I_5 \quad \text{since} \quad \text{Var}( \epsilon) = \sigma^2I_5
+            \end{align*}
+            \item Usually False
+            
+            Since we showed that $\mathbb{E}[\textbf{Y}] = \textbf{X}\beta$, this is only true in the case that $\textbf{X}\beta = 0$ which comes from either the model predicting a constant output at 0 or if the model has only weights of 0.
+            \item True
+            
+            Let $\epsilon$ have the form
+            \begin{equation*}
+                \epsilon = \left[\begin{array}{c}
+                \epsilon_1  \\
+                \epsilon_2  \\
+                \epsilon_3  \\
+                \epsilon_4  \\
+                \epsilon_5 
+            \end{array} \right]
+            \end{equation*}
+            then, we know that the $\text{Var}(\epsilon)=\sigma^2I_5$ or,
+            \begin{equation*}
+               \text{Var}(\epsilon)= \text{Var}\left(\left[\begin{array}{c}
+                \epsilon_1  \\
+                \epsilon_2  \\
+                \epsilon_3  \\
+                \epsilon_4  \\
+                \epsilon_5 
+            \end{array} \right] \right) = \left [\begin{array}{ccccc}
+                \sigma^2 & 0 & 0 & 0 & 0 \\ 0 & \sigma^2 & 0 & 0 & 0 \\
+                0 & 0 & \sigma^2 & 0 & 0 \\ 0 & 0 & 0 & \sigma^2 & 0 \\
+                0 & 0 & 0 & 0 & \sigma^2
+            \end{array} \right]
+            \end{equation*}
+            so each error has the same variance of exactly $\sigma^2$.
+            \end{enumerate}
+    \end{enumerate}
+
+        $\square$
+    \end{solution}
+
+    \newpage
+    \question[12] Question 2\droppoints
+
+    Continue using the data and design matrix from question 1.
+
+    \begin{enumerate}[A.)]
+        \item Starting from \\ \\
+        $S(\beta)=(\textbf{Y}-\textbf{X}\beta)^\intercal(\textbf{Y}-\textbf{X}\beta)$, \\ \\
+        derive the normal equations \\ \\
+        $\textbf{X}^\intercal \textbf{X}\hat\beta = \textbf{X}^\intercal \textbf{Y}$ \\ \\
+        and then state the OLS when $\textbf{X}$ has full column rank.
+        \item Using the quantities from question 1, compute \\ \\
+        $\hat\beta = \left[ \begin{array}{c}
+             \hat\beta_0  \\ \hat\beta_1
+        \end{array}\right]$ \\ \\
+        Identify the values of $\hat\beta_0$ and $\hat\beta_1$, then write out the estimator $\hat Y$.
+        \item For the least squares residual vector, $\textbf{e}=\textbf{Y}-\hat{\textbf{Y}}$, evaluate the truthfulness of each expression and justify geometrically: \begin{enumerate}[i.)]
+            \item $\textbf{X}\textbf{e}=0$
+            \item $\textbf{X}^\intercal \textbf{e}=0$
+            \item $\textbf{e}^\intercal \textbf{e}=0$
+            \item $\textbf{H}\textbf{e}=\textbf{e}$
+        \end{enumerate}
+    \end{enumerate}
+    
+    \begin{solution}
+
+        \begin{enumerate}[a.)]
+            \item Given $S(\beta)=(\textbf{Y}-\textbf{X}\beta)^\intercal(\textbf{Y}-\textbf{X}\beta)$ then by expansion,
+            \begin{equation*}
+                S(\beta) = \textbf{Y}^\intercal \textbf{Y} - \textbf{Y}^\intercal \textbf{X}\beta - \beta^\intercal \textbf{X}^\intercal\textbf{Y} + \beta^\intercal \textbf{X}^\intercal \textbf{X}\beta
+            \end{equation*}
+
+            The term $\textbf{Y}^\intercal\textbf{X}\beta$ has terms $\textbf{Y}^\intercal\in\mathbb{R}^{1\times n}$, $\textbf{X}\in\mathbb{R}^{n\times p}$, and $\beta\in\mathbb{R}^{p\times1}$ which results in the product being in $\mathbb{R}^{1\times1}\subseteq\mathbb{R}$. Thus, 
+            \begin{equation*}
+                \textbf{Y}^\intercal\textbf{X}\beta=(\textbf{Y}^\intercal\textbf{X}\beta)^\intercal = \beta^\intercal\textbf{X}^\intercal \textbf{Y}
+            \end{equation*}
+
+            Together, this simplifies $S(\beta)$ into,
+            \begin{equation*}
+                S(\beta)= \textbf{Y}^\intercal\textbf{Y} - 2 \beta^\intercal\textbf{X}^\intercal\textbf{Y} + \beta^\intercal\textbf{X}^\intercal\textbf{X}\beta
+            \end{equation*}
+
+            Since we are seeking the minimum value of $S(\beta)$ given $\beta$, we can take the partial derivative of $S(\beta)$ with respect to $\beta$. We can use the identity that was blatantly stolen from \href{https://en.wikipedia.org/wiki/Matrix_calculus}{Wikipedia},
+            \begin{equation*}
+                \frac{\partial (\textbf{Ax}+\textbf{b})^\intercal\textbf{C}(\textbf{Dx} + \textbf{e})}{\partial \textbf{x}} = \textbf{D}^\intercal\textbf{C}^\intercal(\textbf{Ax}+\textbf{b})+\textbf{A}^\intercal \textbf{C}(\textbf{Dx}+\textbf{e})
+            \end{equation*}
+
+            with $\textbf{b}=\textbf{e}=0$, $\textbf{A}=\textbf{D}=\textbf{I}$, and $\textbf{C}=\textbf{X}^\intercal\textbf{X}$, we get, 
+
+            \begin{equation*}
+                \frac{\partial S(\beta)}{\partial\beta} = - 2 \textbf{X}^\intercal\textbf{Y} + 2\textbf{X}^\intercal\textbf{X}\beta
+            \end{equation*}
+
+            The minimum, is of course when the derivative is equal to 0, and thus,
+            \begin{equation*}
+                - 2 \textbf{X}^\intercal\textbf{Y} + 2\textbf{X}^\intercal\textbf{X}\hat{\beta} = 0
+            \end{equation*}
+
+            which leaves the final normal equations of,
+            \begin{equation*}
+                \textbf{X}^\intercal\textbf{Y} = \textbf{X}^\intercal\textbf{X}\hat{\beta}
+            \end{equation*}
+
+            The OLS estimator is thus,
+            \begin{equation*}
+                \hat{\beta} = ( \textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{Y}
+            \end{equation*}
+
+        \item To find the value of $\hat{\beta}$, we can set $\hat{\beta}= ( \textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{Y}$. Copying the above from question 1, we have,
+        \begin{align*}
+            \textbf{X}^\intercal\textbf{X} & = \left [\begin{array}{cc}
+                5 & 10 \\
+                10 & 30 
+            \end{array} \right] \\
+            \textbf{X}^\intercal\textbf{Y} & = \left [\begin{array}{c}
+                28 \\ 74
+            \end{array} \right]
+        \end{align*}
+
+        Thus, it is easy to compute the inverse of $\textbf{X}^\intercal\textbf{X}$, assuming it exists, and can be done as,
+        \begin{equation*}
+            (\textbf{X}^\intercal\textbf{X})^{-1}=\frac{1}{150 - 100} \left [\begin{array}{cc}
+                30 & -10 \\
+                -10 & 5 
+            \end{array} \right] =  \left [\begin{array}{cc}
+                \frac{3}{5} & -\frac{1}{5} \\
+                -\frac{1}{5} & \frac{1}{10} 
+            \end{array} \right]
+        \end{equation*}
+
+        Thus, $\hat{\beta}$ is given by,
+        \begin{align*}
+            \hat{\beta} & = ( \textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{Y} \\
+            & = \left [\begin{array}{cc}
+                \frac{3}{5} & -\frac{1}{5} \\
+                -\frac{1}{5} & \frac{1}{10} 
+            \end{array} \right]\left [\begin{array}{c}
+                28 \\ 74
+            \end{array} \right] \\ 
+            & = \left [\begin{array}{c}
+                2 \\ \frac{9}{5}
+            \end{array} \right]
+        \end{align*}
+
+        Using the found value of $\hat{\beta}$, we can say that the estimator is thus,
+        \begin{align*}
+            \hat{\textbf{Y}} &= \textbf{X}\hat{\beta} \\ 
+             \hat{\textbf{Y}}&= \left [\begin{array}{cc}
+                1 & 0 \\
+                1 & 1 \\
+                1 & 2 \\
+                1 & 3 \\
+                1 & 4
+            \end{array} \right]\left [\begin{array}{c}
+                2 \\ \frac{9}{5}
+            \end{array} \right] \\
+             \hat{\textbf{Y}} & = \left[\begin{array}{c}
+                2  \\
+                3.8  \\
+                5.6  \\
+                7.4  \\
+                9.2 
+            \end{array} \right]
+        \end{align*}
+
+        The final estimator is thus,
+        \begin{equation*}
+            \hat{\textbf{Y}} = 2 + \frac{9}{5}\textbf{X}
+        \end{equation*}
+
+        \item The error vector $\textbf{e}$ is thus,
+        \begin{align*}
+            \textbf{e}&=\textbf{Y}- \hat{\textbf{Y}} \\
+            \textbf{e} & = \left[\begin{array}{c}
+                2  \\
+                4  \\
+                5  \\
+                8  \\
+                9 
+            \end{array} \right] - \left[\begin{array}{c}
+                2  \\
+                3.8  \\
+                5.6  \\
+                7.4  \\
+                9.2 
+            \end{array} \right] = \left[\begin{array}{c}
+                0  \\
+                0.2  \\
+                -0.6  \\
+                0.6  \\
+                -0.2 
+            \end{array} \right]
+        \end{align*}
+
+        \begin{enumerate}[i.)]
+            \item False 
+
+            The product $\textbf{Xe}$ is meaningless as $\textbf{X}\in\mathbb{R}^{n\times 2}$ and $\textbf{e}\in\mathbb{R}^{n\times 1}$. They do not have a meaningful product via usual matrix multiplication.
+
+            \item True
+
+            This will at least have a product which exists. Computing this, we get,
+            \begin{equation*}
+                \textbf{X}^\intercal\textbf{e} = \left [\begin{array}{ccccc}
+                1 & 1 & 1 & 1 & 1 \\
+                0 & 1 & 2 & 3 & 4
+            \end{array} \right]\left[\begin{array}{c}
+                0  \\
+                0.2  \\
+                -0.6  \\
+                0.6  \\
+                -0.2 
+            \end{array} \right] = \left[\begin{array}{c}
+                 0  \\  0                   
+            \end{array} \right]
+            \end{equation*}
+
+            Geometrically, the fitted model is the best that can be achieved. There is still some residual and the amount left is not inside the span of $\textbf{X}$. The residual is orthogonal to the span of $\textbf{X}$ thus leaving the inner product 0.
+
+            \item False
+
+            This is the magnitude of the residual vector. This can be equal to 0 but is not usually. It is only equal to 0 if the actual data is collinear. 
+
+            \item False
+
+            With $\textbf{H}$ defined as,
+            \begin{equation*}
+                \textbf{H}=\textbf{X}(\textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal
+            \end{equation*}
+
+            We can right multiply by $\textbf{e}$ to get,
+            \begin{align*}
+                \textbf{He}& = \textbf{X}(\textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{e} \\
+                \textbf{He}& = \textbf{X}(\textbf{X}^\intercal\textbf{X})^{-1}(\textbf{X}^\intercal\textbf{e}) \\
+                \textbf{He}& = \textbf{X}(\textbf{X}^\intercal\textbf{X})^{-1}0 \\ \textbf{He}&=0
+            \end{align*}
+
+            Since $\textbf{H}$ depends only on $\textbf{X}$, and with $\textbf{e}$ outside the span of $\textbf{X}$, how could $\textbf{H}$ ever reach a point that is orthogonal to it? It can't leaving the identity as false.
+            
+        \end{enumerate}
+            
+        \end{enumerate}
+    
+        $\square$
+        
+    \end{solution}
+
+    \newpage
+
+    \question[12] Question 3\droppoints
+
+    Continue using the data and fitted regression model from before.
+
+    \begin{enumerate}[a.)]
+        \item Compute both $\hat{\textbf{Y}}=\textbf{X}\hat{\beta}$ and $\textbf{e}=\textbf{Y}-\hat{\textbf{
+       Y 
+        }}$.
+        \item Determine the truth value of:
+        \begin{enumerate}[i.)]
+            \item The residuals satisfy
+            \begin{equation*}
+                \sum\limits_{i=1}^{n}\textbf{e}_i=0
+            \end{equation*}
+            \item The fitted values satisfy $\overline{\hat{\textbf{Y}}}=\overline{\textbf{Y}}$.
+            \item The vector composing of all 1's (i.e. $\textbf{1}_n$) belongs to $\mathcal{C}(\textbf{X}).$
+            \item These properties necessarily hold for every regression model without an intercept.
+        \end{enumerate}
+        \item Define $\textbf{M}=\textbf{I}_n - \textbf{H}$. 
+        Determine the truth value of:
+        \begin{enumerate}[i.)]
+            \item $\textbf{e}=\textbf{M}\textbf{Y}$
+            \item $\textbf{M}^\intercal = \textbf{M}$
+            \item $\textbf{M}^2 = \textbf{M}$
+            \item $\textbf{HM}=\textbf{0}$
+        \end{enumerate}
+        \item Suppose now that a design matrix $\textbf{X}$ does not have full column rank.
+        Determine the truth value of:
+        \begin{enumerate}[i.)]
+            \item $(\textbf{X}^\intercal\textbf{X})^{-1}$ necessarily exists.
+            \item The least squares coefficient vector $\hat{\beta}$ may not be unique. 
+            \item The fitted vector $\hat{\textbf{Y}}$ is still unique.
+            \item The residual vector $\textbf{e}$ is still unique.
+        \end{enumerate}
+    \end{enumerate}
+
+    \begin{solution}
+
+    \begin{enumerate}[a.)]
+        \item Copying from above,
+
+        \begin{align*}
+            \hat{\textbf{Y}} &= \textbf{X}\hat{\beta} \\ 
+             \hat{\textbf{Y}}&= \left [\begin{array}{cc}
+                1 & 0 \\
+                1 & 1 \\
+                1 & 2 \\
+                1 & 3 \\
+                1 & 4
+            \end{array} \right]\left [\begin{array}{c}
+                2 \\ \frac{9}{5}
+            \end{array} \right] \\
+             \hat{\textbf{Y}} & = \left[\begin{array}{c}
+                2  \\
+                3.8  \\
+                5.6  \\
+                7.4  \\
+                9.2 
+            \end{array} \right]
+        \end{align*}
+
+        and,
+
+        \begin{align*}
+            \textbf{e}&=\textbf{Y}- \hat{\textbf{Y}} \\
+            \textbf{e} & = \left[\begin{array}{c}
+                2  \\
+                4  \\
+                5  \\
+                8  \\
+                9 
+            \end{array} \right] - \left[\begin{array}{c}
+                2  \\
+                3.8  \\
+                5.6  \\
+                7.4  \\
+                9.2 
+            \end{array} \right] = \left[\begin{array}{c}
+                0  \\
+                0.2  \\
+                -0.6  \\
+                0.6  \\
+                -0.2 
+            \end{array} \right]
+        \end{align*}
+
+        \item 
+        \begin{enumerate}[i.)]
+            \item True
+
+            Taking $\textbf{e}$, we get,
+            \begin{equation*}
+                \left[\begin{array}{c}
+                0  \\
+                0.2  \\
+                -0.6  \\
+                0.6  \\
+                -0.2 
+            \end{array} \right] \implies 0 + 0.2 -0.6 + 0.6 - 0.2 = 0
+            \end{equation*}
+            
+            \item True
+
+            \begin{align*}
+                \overline{\textbf{Y}} & = \frac{2 + 4 + 5 +8 + 9}{5} = 5.6 \\
+                \overline{\hat{\textbf{Y}}} & = \frac{2 + 3.8 + 5.6 + 7.4 + 9.2}{5} = 5.6
+            \end{align*}
+
+            \item True
+
+            If we partition $\textbf{X}$ as $\textbf{X}=[ \textbf{x}_1 \quad \textbf{x}_2]$, then $\textbf{x}_1 = \textbf{1}_5$.
+
+            \item False
+
+            The identity of,
+            \begin{equation*}
+                \sum\limits_{i=1}^{n}\textbf{e}_i=0
+            \end{equation*}
+            does not hold if the intercept drops. 
+        \end{enumerate}
+        \item Here, $\textbf{M} = \textbf{I}_5 - \textbf{H}$,
+        \begin{align*}
+            \textbf{M} &= \left[\begin{array}{ccccc}
+                1 & 0 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 0 & 1
+            \end{array} \right] - \left[\begin{array}{ccccc}
+                 0.6 & 0.4 & 0.2 & 0.0 & -0.2 \\
+                 0.4 & 0.3 & 0.2 & 0.1 &  0.0 \\
+                 0.2 & 0.2 & 0.2 & 0.2 &  0.2 \\
+                 0.0 & 0.1 & 0.2 & 0.3 &  0.4 \\
+                -0.2 & 0.0 & 0.2 & 0.4 &  0.6
+            \end{array}\right] \\ \\
+            & = \left[\begin{array}{ccccc}
+                 0.4 & -0.4 & -0.2 &  0.0 &  0.2 \\
+                -0.4 &  0.7 & -0.2 & -0.1 &  0.0 \\
+                -0.2 & -0.2 &  0.8 & -0.2 & -0.2 \\
+                 0.0 & -0.1 & -0.2 &  0.7 & -0.4 \\
+                 0.2 &  0.0 & -0.2 & -0.4 &  0.4
+            \end{array}\right]
+        \end{align*}
+        \begin{enumerate}[i.)]
+            \item True
+
+            Calculating directly, 
+            \begin{align*}
+                \textbf{MY} & = \left[\begin{array}{ccccc}
+                 0.4 & -0.4 & -0.2 &  0.0 &  0.2 \\
+                -0.4 &  0.7 & -0.2 & -0.1 &  0.0 \\
+                -0.2 & -0.2 &  0.8 & -0.2 & -0.2 \\
+                 0.0 & -0.1 & -0.2 &  0.7 & -0.4 \\
+                 0.2 &  0.0 & -0.2 & -0.4 &  0.4
+            \end{array}\right]\left[\begin{array}{c}
+                2  \\
+                4  \\
+                5  \\
+                8  \\
+                9 
+            \end{array} \right] \\
+            & = \left[\begin{array}{c}
+                0  \\
+                0.2  \\
+                -0.6  \\
+                0.6  \\
+                -0.2 
+            \end{array} \right] \\
+            & = \textbf{e}
+            \end{align*}
+            \item True
+
+            Since $\textbf{M}$ is defined as $\textbf{M}=\textbf{I} - \textbf{H}$, we can use the properties of both $\textbf{I}$ and $\textbf{H}$.
+            \begin{align*}
+                \textbf{M}^\intercal & = (\textbf{I} - \textbf{H})^\intercal \\
+                &= \textbf{I}^\intercal - \textbf{H}^\intercal \\
+                & = \textbf{I} - \textbf{H} \quad \text{since} \quad \textbf{I}^\intercal = \textbf{I} \quad \& \quad \textbf{H}^\intercal = \textbf{H} \\
+                & = \textbf{M}
+            \end{align*}
+
+            \item True
+
+            \begin{align*}
+                \textbf{M}^2 &= (\textbf{I} - \textbf{H})(\textbf{I} - \textbf{H}) \\
+                & = \textbf{I}^2 - \textbf{HI} - \textbf{IH} + \textbf{H}^2 \\
+                & = \textbf{I} - 2\textbf{H} + \textbf{H} \quad \text{since} \quad \textbf{H}^2=\textbf{H} \\
+                &= \textbf{I} - \textbf{H} \\
+                &= \textbf{M}
+            \end{align*}
+            \item True
+
+            \begin{align*}
+                \textbf{HM} & = \textbf{H}(\textbf{I} - \textbf{H}) \\
+                &= \textbf{HI} - \textbf{H}^2 \\
+                &= \textbf{H} - \textbf{H} \quad \text{since} \quad \textbf{H}^2=\textbf{H} \\
+                & = 0
+            \end{align*}
+        \end{enumerate}
+        \item We assume that $\textbf{X}$ does not have full column rank.
+        \begin{enumerate}[i.)]
+            \item False
+
+            This is due to the following properties. Since $\textbf{X}$ does not have full column rank, its determinant is 0. The value $(\textbf{X}^\intercal\textbf{X})^{-1}$ exists iff that $\det[\textbf{X}^\intercal\textbf{X}]\neq0$.
+            
+            \begin{align*}
+               & \text{rank}(\textbf{X}^\intercal\textbf{X}) =  \text{rank}(\textbf{X}) \\
+               & \text{rank}(\textbf{X}) < p \implies \text{rank}(\textbf{X}^\intercal\textbf{X}) < p \\
+               & \text{rank}(\textbf{X}^\intercal\textbf{X}) < p\implies  \det(\textbf{X}^\intercal\textbf{X})=0
+            \end{align*}
+
+            Which is a contradiction leading to False.
+
+            \item True
+
+            The values of $\beta$ do not need to be unique.
+            
+            \item True
+
+            Due to $\textbf{X}$ not having full column rank, the $\hat{\beta}$ that is chosen, while not unique, does point toward a unique $\hat{\textbf{Y}}$ which minimizes the least squares problem.
+
+            \item True
+
+            Taking $\hat{\textbf{Y}}$ to be unique and $\textbf{Y}$ to be constant, then necessarily, $\textbf{e}=\textbf{Y}-\hat{\textbf{Y}}$ is also unique since it is just an affine shift of $\hat{\textbf{Y}}$.
+        \end{enumerate}
+    \end{enumerate}
+
+        
+        $\square$
+        
+    \end{solution}
+
+    \newpage
+
+    \question[8] Question 4\droppoints
+
+    Using the built-in model in R, $\textit{cars}$, consider the model,
+    \begin{equation*}
+        \text{dist}_i=\beta_0 + \beta_1\text{speed}_i + \epsilon_i
+    \end{equation*}
+
+    \begin{enumerate}[a.)]
+        \item Fit the model using linear regression. Identify the vector $\beta$ and interpret $\beta_1$.
+        \item Construct $\textbf{Y}$ and $\textbf{X}$ manually. Reproduce the OLS coefficients using matrix operations.
+    \end{enumerate}
+
+    \begin{solution}
+
+        \begin{enumerate}[a.)]
+            \item 
+        
+            Running the code (in accompanying file), I get the $\beta$ vector to be,
+            \begin{equation*}
+                \beta = \left[\begin{array}{c}
+                    -17.579 \\ 3.932 
+                \end{array} \right]
+            \end{equation*}
+    
+            This gives an overall linear regression of,
+            \begin{equation*}
+                \widehat{\text{dist}}_i=-17.579 + 3.932\text{speed}_i
+            \end{equation*}
+    
+            What $\beta_1$ means is that the distance required to stop goes up by 3.932 feet for every mph increase of speed. 
+    
+            \item 
+
+            The data and targets are shown,
+
+            \begin{equation*}
+                \textbf{X} = \left[\begin{array}{cc}
+                    1 & 4 \\
+                    1 & 4 \\
+                    1 & 7 \\
+                    \vdots & \vdots \\
+                    1 & 25
+                \end{array} \right] \quad \& \quad \textbf{Y} = \left[\begin{array}{c}
+                    2 \\ 10 \\ 4 \\
+                    \vdots  \\
+                    85
+                \end{array} \right]
+            \end{equation*}
+
+            For brevity, I am not going to write those out explicitly but I am going to use them to hand calculate the $\beta$ vector. We know that $\hat \beta$ is given by,
+            \begin{equation*}
+                \hat\beta = ( \textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{Y}
+            \end{equation*}
+
+            We can painfully do the matrix operations to get that,
+            \begin{equation*}
+                \textbf{X}^\intercal\textbf{X} = \left[\begin{array}{cc}
+                    50 & 770 \\ 770 & 13228
+                \end{array} \right] \quad \& \quad \textbf{X}^\intercal\textbf{Y} = \left[\begin{array}{c}
+                    2149 \\ 38482
+                \end{array} \right]
+            \end{equation*}
+
+            These are easier to work with. By taking the inverse we get,
+            \begin{equation*}
+                ( \textbf{X}^\intercal\textbf{X})^{-1} = \frac{1}{34250} \left[\begin{array}{cc}
+                    6614 & -385 \\ -385 & 25
+                \end{array} \right]
+            \end{equation*}
+
+            We thus get the multiplication problem of,
+            \begin{align*}
+                \hat\beta &= ( \textbf{X}^\intercal\textbf{X})^{-1}\textbf{X}^\intercal\textbf{Y}\\&= \frac{1}{34250} \left[\begin{array}{cc}
+                    6614 & -385 \\ -385 & 25
+                \end{array} \right]\left[\begin{array}{c}
+                    2149 \\ 38482
+                \end{array} \right]
+                \\ &=\left[\begin{array}{c}
+                    -17.579 \\ 3.932
+                \end{array} \right]
+            \end{align*}
+
+            Which is exactly what our R code produced.
+
+        \end{enumerate}        
+        
+        $\square$
+        
+    \end{solution}
+
+    
+\end{questions}
+\end{document}
